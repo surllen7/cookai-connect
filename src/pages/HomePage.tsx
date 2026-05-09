@@ -5,6 +5,8 @@ import CategorySection from '../components/CategorySection';
 import { INITIAL_INGREDIENTS } from '../constants/mockData';
 import type { IngredientCategory, IngredientsState } from '../types';
 
+const ABUNDANCE_THRESHOLD = 6;
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [ingredients, setIngredients] = useState<IngredientsState>(INITIAL_INGREDIENTS);
@@ -18,6 +20,24 @@ export default function HomePage() {
     }));
   };
 
+  const addCustomIngredient = (category: IngredientCategory, name: string) => {
+    const id = `custom_${category}_${Date.now()}`;
+    setIngredients((prev) => ({
+      ...prev,
+      [category]: [
+        ...prev[category],
+        { id, name, icon: '🥘', selected: true, custom: true },
+      ],
+    }));
+  };
+
+  const removeCustomIngredient = (category: IngredientCategory, id: string) => {
+    setIngredients((prev) => ({
+      ...prev,
+      [category]: prev[category].filter((item) => item.id !== id),
+    }));
+  };
+
   const clearSelections = () => {
     setIngredients({
       meat: INITIAL_INGREDIENTS.meat.map((i) => ({ ...i, selected: false })),
@@ -25,6 +45,16 @@ export default function HomePage() {
       condiment: INITIAL_INGREDIENTS.condiment.map((i) => ({ ...i, selected: false })),
     });
   };
+
+  const mainIngredients = [...ingredients.meat, ...ingredients.vegetable]
+    .filter((i) => i.selected)
+    .map((i) => i.name);
+  const condiments = ingredients.condiment
+    .filter((i) => i.selected)
+    .map((i) => i.name);
+
+  const totalSelected = mainIngredients.length + condiments.length;
+  const isAbundance = mainIngredients.length >= ABUNDANCE_THRESHOLD;
 
   return (
     <>
@@ -64,16 +94,58 @@ export default function HomePage() {
           </button>
         </div>
 
+        {/* 食材过多提示 banner */}
+        {isAbundance && (
+          <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <span className="text-lg">✨</span>
+            <div>
+              <p className="text-xs font-bold text-amber-700">食材有点多！</p>
+              <p className="text-[11px] text-amber-600">AI 将从 {mainIngredients.length} 种主食材中精选最佳搭配为你生成菜谱</p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-5">
-          <CategorySection category="meat" title="肉类" icon="🥩" iconBg="bg-red-50" items={ingredients.meat} onToggle={toggleIngredient} />
-          <CategorySection category="vegetable" title="蔬菜" icon="🥬" iconBg="bg-green-50" items={ingredients.vegetable} onToggle={toggleIngredient} />
-          <CategorySection category="condiment" title="调料" icon="🧂" iconBg="bg-amber-50" items={ingredients.condiment} onToggle={toggleIngredient} />
+          <CategorySection
+            category="meat"
+            title="肉类"
+            icon="🥩"
+            iconBg="bg-red-50"
+            items={ingredients.meat}
+            onToggle={toggleIngredient}
+            onAddCustom={addCustomIngredient}
+            onRemoveCustom={removeCustomIngredient}
+          />
+          <CategorySection
+            category="vegetable"
+            title="蔬菜"
+            icon="🥬"
+            iconBg="bg-green-50"
+            items={ingredients.vegetable}
+            onToggle={toggleIngredient}
+            onAddCustom={addCustomIngredient}
+            onRemoveCustom={removeCustomIngredient}
+          />
+          <CategorySection
+            category="condiment"
+            title="调料"
+            icon="🧂"
+            iconBg="bg-amber-50"
+            items={ingredients.condiment}
+            onToggle={toggleIngredient}
+            onAddCustom={addCustomIngredient}
+            onRemoveCustom={removeCustomIngredient}
+          />
         </div>
       </main>
 
       <div className="absolute bottom-24 left-0 right-0 px-6 flex justify-center pointer-events-none z-20">
         <button
-          onClick={() => navigate('/loading')}
+          onClick={() =>
+            navigate('/loading', {
+              state: { mainIngredients, condiments, originalIngredients: mainIngredients },
+            })
+          }
           className="pointer-events-auto w-full max-w-[340px] h-[72px] rounded-full bg-gradient-to-r from-[#9ED05B] via-[#A8DC64] to-[#F7DE70] shadow-[0_12px_30px_rgba(158,208,91,0.35)] flex items-center justify-between px-3 pr-6 overflow-hidden relative group transform hover:scale-[1.02] transition-transform active:scale-[0.98]"
         >
           <Sparkles size={16} className="absolute top-4 left-32 text-white/60" />
@@ -86,7 +158,11 @@ export default function HomePage() {
             </div>
             <div className="text-left flex flex-col justify-center">
               <div className="text-white font-bold text-[22px] leading-tight tracking-wide drop-shadow-sm">AI 智能搭配</div>
-              <div className="text-white/95 text-[11px] font-medium tracking-wide">让 AI 帮你生成美味菜谱</div>
+              <div className="text-white/95 text-[11px] font-medium tracking-wide">
+                {totalSelected > 0
+                  ? `已选 ${totalSelected} 种食材${isAbundance ? ' · AI 精选模式' : ''}`
+                  : '让 AI 帮你生成美味菜谱'}
+              </div>
             </div>
           </div>
           <ArrowRight className="text-white relative z-10" size={24} strokeWidth={2.5} />

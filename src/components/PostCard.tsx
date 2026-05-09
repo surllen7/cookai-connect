@@ -7,13 +7,16 @@ export default function PostCard({ post }: { post: Post }) {
   const [likeCount, setLikeCount] = useState(post.likes);
 
   const toggleLike = () => {
-    setLiked((prev) => !prev);
-    setLikeCount((prev) => prev + (liked ? -1 : 1));
+    setLiked((prev) => {
+      const next = !prev;
+      setLikeCount((c) => c + (next ? 1 : -1));
+      return next;
+    });
   };
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col">
-      <div className={`w-full ${post.height} bg-slate-200 relative`}>
+      <div className="w-full bg-slate-200 relative" style={{ height: post.height }}>
         <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
       </div>
       <div className="p-3">

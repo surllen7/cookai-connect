@@ -31,7 +31,7 @@ export const COMMUNITY_POSTS: Post[] = [
     author: '美食课代表',
     likes: 2341,
     image: 'https://images.unsplash.com/photo-1544025162-811114bd2446?q=80&w=1000&auto=format&fit=crop',
-    height: 'h-64',
+    height: 256,
   },
   {
     id: 2,
@@ -39,7 +39,7 @@ export const COMMUNITY_POSTS: Post[] = [
     author: 'FitGirl',
     likes: 892,
     image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1000&auto=format&fit=crop',
-    height: 'h-48',
+    height: 192,
   },
   {
     id: 3,
@@ -47,7 +47,7 @@ export const COMMUNITY_POSTS: Post[] = [
     author: '大厨养成记',
     likes: 4500,
     image: 'https://images.unsplash.com/photo-1608039829572-78524f79c4c7?q=80&w=1000&auto=format&fit=crop',
-    height: 'h-56',
+    height: 224,
   },
   {
     id: 4,
@@ -55,6 +55,6 @@ export const COMMUNITY_POSTS: Post[] = [
     author: '拉面控',
     likes: 1205,
     image: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?q=80&w=1000&auto=format&fit=crop',
-    height: 'h-64',
+    height: 256,
   },
 ];

@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+.env.example
+supabase_schema.sql
+src/docs/智能AI菜谱社区Web版_PRD_v2.1.md
+src/docs/demo.md
+src/docs/implementation_record.md
+src/docs/implementation_record copy.md

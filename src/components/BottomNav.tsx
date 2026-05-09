@@ -23,7 +23,7 @@ export default function BottomNav() {
               active ? 'text-[#84B741]' : 'text-[#A0AEC0] hover:text-slate-600'
             } active:scale-95 transition-transform`}
           >
-            <div className={`transition-all duration-300 ease-spring ${active ? '-translate-y-1 scale-110 drop-shadow-sm' : ''}`}>
+            <div className={`transition-all duration-300 ease-out ${active ? '-translate-y-1 scale-110 drop-shadow-sm' : ''}`}>
               <Icon size={26} strokeWidth={2.5} />
             </div>
             <span className={`text-[11px] ${active ? 'font-bold' : 'font-semibold'}`}>{label}</span>
