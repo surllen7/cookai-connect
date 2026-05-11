@@ -79,9 +79,17 @@ export function useAuth() {
     const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
     if (error) return { error };
 
+    let existed = false;
+
     if (password) {
       const { error: pwdError } = await supabase.auth.updateUser({ password });
-      if (pwdError) return { error: pwdError };
+      if (pwdError) {
+        if ((pwdError as { code?: string }).code === 'same_password') {
+          existed = true; // 邮箱已注册，忽略 same_password
+        } else {
+          return { error: pwdError };
+        }
+      }
     }
 
     if (username && data.user) {
@@ -91,7 +99,7 @@ export function useAuth() {
       if (profileError) return { error: profileError };
     }
 
-    return { error: null };
+    return { error: null, existed };
   };
 
   // 重置为默认密码（已登录状态）

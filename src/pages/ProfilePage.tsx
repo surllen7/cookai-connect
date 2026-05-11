@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LayoutGrid, Bookmark, LogOut, Clock, ChefHat, KeyRound, X, Copy, Check } from 'lucide-react';
 import { useAuthContext } from '../context/AuthContext';
 import { useSavedRecipes } from '../hooks/useSavedRecipes';
 import { buildDefaultPassword } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 // 邮箱脱敏：user@gmail.com → us**@gmail.com
 function formatEmail(email: string | null | undefined): string {
@@ -11,12 +12,6 @@ function formatEmail(email: string | null | undefined): string {
   const [name, domain] = email.split('@');
   const masked = name.slice(0, 2) + '*'.repeat(Math.max(name.length - 2, 2));
   return `${masked}@${domain}`;
-}
-
-// 昵称：取邮箱 @ 前的部分（最多8位）
-function buildNickname(email: string | null | undefined): string {
-  if (!email) return '美食探索者';
-  return email.split('@')[0].slice(0, 8);
 }
 
 // ── 重置默认密码弹窗 ──────────────────────────────────────────────────────────
@@ -124,14 +119,22 @@ export default function ProfilePage() {
   const { savedRecipes, loading } = useSavedRecipes(user?.id);
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('saved');
   const [showResetModal, setShowResetModal] = useState(false);
+  const [displayName, setDisplayName] = useState('美食探索者');
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('username').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data?.username) setDisplayName(data.username);
+      });
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
   };
 
-  const email    = user?.email ?? null;
-  const nickname = buildNickname(email);
+  const email = user?.email ?? null;
 
   return (
     <div className="flex flex-col h-full w-full bg-white relative pb-24">
@@ -152,7 +155,7 @@ export default function ProfilePage() {
             🥑
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-slate-800 truncate">{nickname}</h1>
+            <h1 className="text-xl font-bold text-slate-800 truncate">{displayName}</h1>
             <p className="text-xs text-slate-400 mb-3">{formatEmail(email)}</p>
             <div className="flex gap-5 text-slate-800">
               <div className="flex flex-col items-center">

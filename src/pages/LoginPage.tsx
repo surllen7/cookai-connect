@@ -217,6 +217,7 @@ function RegisterForm() {
   const [cooldown, setCooldown] = useState(0);
   const [loading, setLoading]   = useState(false);
   const [errors, setErrors]     = useState<Record<string, string>>({});
+  const [topBanner, setTopBanner] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -280,7 +281,8 @@ function RegisterForm() {
     if (token.length < 6) { setErrors({ otp: '请输入完整的 6 位验证码' }); return; }
     setLoading(true);
     setErrors({});
-    const { error } = await verifyOtp(email.trim(), token, password, username.trim());
+    setTopBanner(null);
+    const { error, existed } = await verifyOtp(email.trim(), token, password, username.trim());
     setLoading(false);
     if (error) {
       const msg = (error as { message?: string })?.message ?? '';
@@ -291,6 +293,9 @@ function RegisterForm() {
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
+    } else if (existed) {
+      setTopBanner({ type: 'info', message: '该邮箱已注册，系统已自动登录您的账号' });
+      setTimeout(() => navigate('/', { replace: true }), 1500);
     } else {
       navigate('/', { replace: true });
     }
@@ -298,6 +303,17 @@ function RegisterForm() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 顶部提示横幅 */}
+      {topBanner && (
+        <div className={`px-4 py-3 rounded-2xl text-sm font-medium ${
+          topBanner.type === 'info'
+            ? 'bg-[#F2F8E8] text-[#5B8C1C] border border-[#D2E8B0]'
+            : 'bg-red-50 text-red-600 border border-red-200'
+        }`}>
+          {topBanner.message}
+        </div>
+      )}
+
       {/* 用户名 */}
       <UsernameInput
         value={username}

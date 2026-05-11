@@ -17,7 +17,6 @@ export default defineConfig(({mode}) => {
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
-      allowedHosts: ['376c469f.r31.cpolar.top'],
     },
   };
 });
