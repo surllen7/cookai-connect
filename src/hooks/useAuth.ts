@@ -29,7 +29,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 注册：发送验证邮件（Supabase 触发 Auth Hook → Resend）
+  // 注册：发送验证邮件
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({
       email,
@@ -39,10 +39,59 @@ export function useAuth() {
     return { error };
   };
 
-  // 登录：邮箱 + 密码
-  const signIn = async (email: string, password: string) => {
+  // 登录：邮箱或用户名 + 密码
+  const signIn = async (identifier: string, password: string) => {
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    let email = identifier.trim();
+
+    if (!isEmail) {
+      const { data, error: lookupError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', identifier.trim())
+        .single();
+      if (lookupError || !data?.email) {
+        return { error: { message: 'username_not_found' } };
+      }
+      email = data.email;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
+  };
+
+  // 发送 OTP 验证码
+  const sendOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    });
+    return { error };
+  };
+
+  // 验证 OTP，同时设置密码和用户名
+  const verifyOtp = async (
+    email: string,
+    token: string,
+    password?: string,
+    username?: string,
+  ) => {
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) return { error };
+
+    if (password) {
+      const { error: pwdError } = await supabase.auth.updateUser({ password });
+      if (pwdError) return { error: pwdError };
+    }
+
+    if (username && data.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({ id: data.user.id, username, email });
+      if (profileError) return { error: profileError };
+    }
+
+    return { error: null };
   };
 
   // 重置为默认密码（已登录状态）
@@ -56,5 +105,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signUp, signIn, resetToDefaultPassword, signOut };
+  return { user, session, loading, signUp, signIn, sendOtp, verifyOtp, resetToDefaultPassword, signOut };
 }

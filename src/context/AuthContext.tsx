@@ -7,6 +7,8 @@ interface AuthContextValue {
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: unknown }>;
   signIn: (email: string, password: string) => Promise<{ error: unknown }>;
+  sendOtp: (email: string) => Promise<{ error: unknown }>;
+  verifyOtp: (email: string, token: string, password?: string) => Promise<{ error: unknown }>;
   resetToDefaultPassword: (email: string) => Promise<{ error: unknown; defaultPassword: string }>;
   signOut: () => Promise<void>;
 }

@@ -5,6 +5,7 @@ export interface Database {
         Row: {
           id: string;
           username: string | null;
+          email: string | null;
           bio: string | null;
           avatar_url: string | null;
           avatar_emoji: string;
@@ -17,12 +18,14 @@ export interface Database {
         Insert: {
           id: string;
           username?: string | null;
+          email?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
           avatar_emoji?: string;
         };
         Update: {
           username?: string | null;
+          email?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
           avatar_emoji?: string;
