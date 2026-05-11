@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutGrid, Bookmark, LogOut, Clock, ChefHat, KeyRound, X, Copy, Check } from 'lucide-react';
+import { LayoutGrid, Bookmark, LogOut, Clock, ChefHat, KeyRound, Lock, Eye, EyeOff, X, Copy, Check } from 'lucide-react';
 import { useAuthContext } from '../context/AuthContext';
 import { useSavedRecipes } from '../hooks/useSavedRecipes';
 import { buildDefaultPassword } from '../hooks/useAuth';
@@ -111,6 +111,103 @@ function ResetPasswordModal({ email, onClose }: { email: string; onClose: () => 
   );
 }
 
+// ── 修改密码弹窗 ──────────────────────────────────────────────────────────────
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const { changePassword } = useAuthContext();
+  const [oldPwd, setOldPwd]       = useState('');
+  const [newPwd, setNewPwd]       = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [show, setShow]           = useState<Record<string, boolean>>({});
+  const [loading, setLoading]     = useState(false);
+  const [done, setDone]           = useState(false);
+  const [error, setError]         = useState('');
+
+  const toggleShow = (key: string) => setShow((s) => ({ ...s, [key]: !s[key] }));
+
+  const handleChange = async () => {
+    if (!oldPwd) { setError('请输入当前密码'); return; }
+    if (newPwd.length < 8) { setError('新密码至少 8 位'); return; }
+    if (newPwd !== confirmPwd) { setError('两次新密码不一致'); return; }
+    setLoading(true);
+    setError('');
+    const { error } = await changePassword(oldPwd, newPwd);
+    setLoading(false);
+    if (error) {
+      setError((error as { message?: string }).message ?? '修改失败');
+    } else {
+      setDone(true);
+    }
+  };
+
+  const pwdInput = (key: string, label: string, value: string, onChange: (v: string) => void, placeholder: string) => (
+    <div>
+      <label className="text-xs font-semibold text-slate-500 mb-1.5 block">{label}</label>
+      <div className="flex items-center bg-white border border-slate-200 rounded-2xl px-4 gap-3 focus-within:border-[#84B741] transition-colors">
+        <Lock size={16} className="text-slate-400 shrink-0" />
+        <input
+          type={show[key] ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-slate-800 placeholder-slate-300 text-sm outline-none h-14"
+        />
+        <button type="button" onClick={() => toggleShow(key)} className="text-slate-400 hover:text-slate-600 p-1 shrink-0">
+          {show[key] ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-t-[28px] px-6 pt-6 pb-10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-5" />
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-lg font-bold text-slate-800">修改密码</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        {!done ? (
+          <div className="flex flex-col gap-4">
+            {pwdInput('old', '当前密码', oldPwd, setOldPwd, '请输入当前密码')}
+            {pwdInput('new', '新密码（至少 8 位）', newPwd, setNewPwd, '请输入新密码')}
+            {pwdInput('confirm', '确认新密码', confirmPwd, setConfirmPwd, '再次输入新密码')}
+            {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+            <button
+              onClick={handleChange}
+              disabled={loading || !oldPwd || !newPwd || !confirmPwd}
+              className="w-full h-13 rounded-full bg-gradient-to-r from-[#9ED05B] to-[#A8DC64] text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all disabled:opacity-50 py-4"
+            >
+              {loading ? (
+                <span className="flex gap-1">
+                  {[0, 150, 300].map((d) => (
+                    <span key={d} className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                  ))}
+                </span>
+              ) : (
+                <><KeyRound size={18} /> 确认修改</>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#F2F8EB] flex items-center justify-center">
+              <Check size={28} className="text-[#84B741]" />
+            </div>
+            <p className="text-base font-bold text-slate-800">密码已修改</p>
+            <p className="text-xs text-slate-500">请使用新密码登录</p>
+            <button onClick={onClose} className="w-full h-12 rounded-full bg-slate-900 text-white font-bold text-sm active:scale-95 transition-all">
+              我知道了
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── 主页面 ────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -118,7 +215,8 @@ export default function ProfilePage() {
   const { user, signOut } = useAuthContext();
   const { savedRecipes, loading } = useSavedRecipes(user?.id);
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('saved');
-  const [showResetModal, setShowResetModal] = useState(false);
+  const [showResetModal, setShowResetModal]       = useState(false);
+  const [showChangePwdModal, setShowChangePwdModal] = useState(false);
   const [displayName, setDisplayName] = useState('美食探索者');
 
   useEffect(() => {
@@ -169,8 +267,20 @@ export default function ProfilePage() {
         {/* 账号设置卡片 */}
         <div className="mx-6 mb-5 bg-slate-50 rounded-[22px] divide-y divide-slate-100 border border-slate-100">
           <button
+            onClick={() => setShowChangePwdModal(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-100/60 active:scale-[0.99] transition-all"
+          >
+            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+              <Lock size={16} className="text-blue-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-700">修改密码</p>
+              <p className="text-xs text-slate-400">验证当前密码后设置新密码</p>
+            </div>
+          </button>
+          <button
             onClick={() => setShowResetModal(true)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-100/60 rounded-[22px] active:scale-[0.99] transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-100/60 active:scale-[0.99] transition-all"
           >
             <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
               <KeyRound size={16} className="text-amber-500" />
@@ -243,6 +353,9 @@ export default function ProfilePage() {
         )}
       </main>
 
+      {showChangePwdModal && (
+        <ChangePasswordModal onClose={() => setShowChangePwdModal(false)} />
+      )}
       {showResetModal && email && (
         <ResetPasswordModal email={email} onClose={() => setShowResetModal(false)} />
       )}

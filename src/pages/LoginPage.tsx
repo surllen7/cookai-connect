@@ -415,10 +415,19 @@ function RegisterForm() {
 // ── 主页面 ────────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'login' | 'register'>('login');
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#FDFBF7] px-6 pt-14 pb-10 overflow-y-auto hide-scrollbar">
+    <div className="flex flex-col h-full w-full bg-[#FDFBF7] px-6 pt-14 pb-10 overflow-y-auto hide-scrollbar relative">
+      {/* 返回按钮 */}
+      <button
+        onClick={() => navigate(-1)}
+        className="absolute top-12 left-6 w-10 h-10 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 active:scale-95 transition-all"
+      >
+        <ChevronLeft size={22} />
+      </button>
+
       <div className="flex flex-col items-center mb-8">
         <div className="w-[72px] h-[72px] rounded-[24px] bg-gradient-to-br from-[#9ED05B] to-[#A8DC64] flex items-center justify-center shadow-lg mb-4">
           <span className="text-4xl">🥑</span>

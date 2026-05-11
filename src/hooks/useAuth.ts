@@ -102,6 +102,17 @@ export function useAuth() {
     return { error: null, existed };
   };
 
+  // 修改密码（已登录，需旧密码验证）
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    const email = user?.email;
+    if (!email) return { error: { message: '未登录' } };
+    // 用旧密码重新登录验证身份
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: oldPassword });
+    if (signInError) return { error: { message: '当前密码错误' } };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error };
+  };
+
   // 重置为默认密码（已登录状态）
   const resetToDefaultPassword = async (email: string) => {
     const defaultPwd = buildDefaultPassword(email);
@@ -113,5 +124,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signUp, signIn, sendOtp, verifyOtp, resetToDefaultPassword, signOut };
+  return { user, session, loading, signUp, signIn, sendOtp, verifyOtp, changePassword, resetToDefaultPassword, signOut };
 }
