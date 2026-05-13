@@ -6,6 +6,7 @@ import RecipePage from './pages/RecipePage';
 import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
+import PublishPage from './pages/PublishPage';
 import BottomNav from './components/BottomNav';
 
 const MAIN_TABS = ['/', '/community', '/profile'];
@@ -31,6 +32,10 @@ function AppShell() {
         <Route path="/loading" element={<LoadingPage />} />
         <Route path="/recipe" element={<RecipePage />} />
         <Route path="/community" element={<CommunityPage />} />
+        <Route
+          path="/publish"
+          element={user ? <PublishPage /> : <Navigate to="/login" replace />}
+        />
         <Route
           path="/profile"
           element={user ? <ProfilePage /> : <Navigate to="/login" replace />}

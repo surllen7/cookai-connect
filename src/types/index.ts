@@ -31,6 +31,7 @@ export interface RecipeIngredient {
 export interface RecipeStep {
   title: string;
   content: string;
+  imageUrl?: string;
 }
 
 export interface Recipe {

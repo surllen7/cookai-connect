@@ -56,9 +56,9 @@ export function useSavedRecipes(userId: string | undefined) {
 
   useEffect(() => { fetchSaved(); }, [fetchSaved]);
 
-  const saveRecipe = async (recipe: Recipe): Promise<boolean> => {
-    if (!userId) return false;
-    const { error } = await supabase.from('recipes').insert({
+  const saveRecipe = async (recipe: Recipe): Promise<{ ok: boolean; id?: string }> => {
+    if (!userId) return { ok: false };
+    const { data, error } = await supabase.from('recipes').insert({
       user_id: userId,
       source: 'ai',
       title: recipe.name,
@@ -70,9 +70,9 @@ export function useSavedRecipes(userId: string | undefined) {
       steps: recipe.steps,
       tip: recipe.tip ?? null,
       is_public: false,
-    });
+    }).select('id').single();
     if (!error) await fetchSaved();
-    return !error;
+    return { ok: !error, id: data?.id };
   };
 
   const removeRecipe = async (id: string): Promise<boolean> => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutGrid, Bookmark, LogOut, Clock, ChefHat, KeyRound, Lock, Eye, EyeOff, X, Copy, Check } from 'lucide-react';
+import { LayoutGrid, Bookmark, LogOut, Clock, ChefHat, KeyRound, Lock, Eye, EyeOff, X, Copy, Check, Send } from 'lucide-react';
 import { useAuthContext } from '../context/AuthContext';
 import { useSavedRecipes } from '../hooks/useSavedRecipes';
 import { buildDefaultPassword } from '../hooks/useAuth';
@@ -210,6 +210,14 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 
 // ── 主页面 ────────────────────────────────────────────────────────────────────
 
+interface UserPost {
+  id: string;
+  title: string;
+  images: string[];
+  likes_count: number;
+  created_at: string;
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuthContext();
@@ -218,6 +226,8 @@ export default function ProfilePage() {
   const [showResetModal, setShowResetModal]       = useState(false);
   const [showChangePwdModal, setShowChangePwdModal] = useState(false);
   const [displayName, setDisplayName] = useState('美食探索者');
+  const [userPosts, setUserPosts] = useState<UserPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -226,6 +236,20 @@ export default function ProfilePage() {
         if (data?.username) setDisplayName(data.username);
       });
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || activeTab !== 'posts') return;
+    setPostsLoading(true);
+    supabase
+      .from('posts')
+      .select('id, title, images, likes_count, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setUserPosts(data ?? []);
+        setPostsLoading(false);
+      });
+  }, [user?.id, activeTab]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -259,6 +283,10 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center">
                 <span className="text-base font-bold">{savedRecipes.length}</span>
                 <span className="text-xs text-slate-400">收藏</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-base font-bold">{userPosts.length}</span>
+                <span className="text-xs text-slate-400">发布</span>
               </div>
             </div>
           </div>
@@ -346,10 +374,44 @@ export default function ProfilePage() {
             </div>
           )
         ) : (
-          <div className="flex flex-col items-center py-16 text-slate-400 gap-3">
-            <LayoutGrid size={40} className="text-slate-200" />
-            <p className="text-sm">社区发布功能即将上线</p>
-          </div>
+          postsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 rounded-full border-4 border-[#84B741] border-t-transparent animate-spin" />
+            </div>
+          ) : userPosts.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-slate-400 gap-3">
+              <LayoutGrid size={40} className="text-slate-200" />
+              <p className="text-sm">还没有发布任何内容</p>
+              <button
+                onClick={() => navigate('/')}
+                className="text-[#84B741] text-sm font-semibold"
+              >
+                去生成菜谱并发布 →
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 p-4">
+              {userPosts.map((post) => (
+                <div key={post.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
+                  <div className="w-full h-28 bg-[#F4F9EE] flex items-center justify-center text-4xl">
+                    {post.images[0]
+                      ? <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover" />
+                      : '🍳'
+                    }
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug mb-2">{post.title}</p>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Send size={10} /> 已发布
+                      </span>
+                      <span>{post.likes_count} 赞</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </main>
 

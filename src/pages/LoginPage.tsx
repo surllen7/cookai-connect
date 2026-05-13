@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, Mail, Lock, ArrowRight, Eye, EyeOff, ChevronLeft, User } from 'lucide-react';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -149,7 +149,7 @@ function PrimaryButton({ children, onClick, disabled, loading }: {
 
 // ── 登录表单 ──────────────────────────────────────────────────────────────────
 
-function LoginForm() {
+function LoginForm({ redirectTo, forwardState }: { redirectTo: string; forwardState: Record<string, unknown> }) {
   const navigate = useNavigate();
   const { signIn } = useAuthContext();
   const [identifier, setIdentifier] = useState('');
@@ -177,13 +177,11 @@ function LoginForm() {
         setErrors({ general: '账号或密码错误，请重新输入' });
       }
     } else {
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true, state: Object.keys(forwardState).length ? forwardState : undefined });
     }
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <IdentifierInput
         value={identifier}
         onChange={(v) => { setIdentifier(v); setErrors((e) => ({ ...e, identifier: '' })); }}
         error={errors.identifier}
@@ -205,7 +203,7 @@ function LoginForm() {
 
 // ── 注册表单（用户名 + 邮箱 + 密码 + OTP 内联展开）────────────────────────────
 
-function RegisterForm() {
+function RegisterForm({ redirectTo, forwardState }: { redirectTo: string; forwardState: Record<string, unknown> }) {
   const navigate = useNavigate();
   const { sendOtp, verifyOtp } = useAuthContext();
   const [username, setUsername] = useState('');
@@ -295,9 +293,9 @@ function RegisterForm() {
       }
     } else if (existed) {
       setTopBanner({ type: 'info', message: '该邮箱已注册，系统已自动登录您的账号' });
-      setTimeout(() => navigate('/', { replace: true }), 1500);
+      setTimeout(() => navigate(redirectTo, { replace: true, state: Object.keys(forwardState).length ? forwardState : undefined }), 1500);
     } else {
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true, state: Object.keys(forwardState).length ? forwardState : undefined });
     }
   };
 
@@ -416,6 +414,9 @@ function RegisterForm() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  // state.from 是回跳路径，state 的其余字段是目标页需要的 location.state
+  const { from: redirectTo = '/', ...forwardState } = (state ?? {}) as Record<string, unknown> & { from?: string };
   const [tab, setTab] = useState<'login' | 'register'>('login');
 
   return (
@@ -452,7 +453,10 @@ export default function LoginPage() {
         ))}
       </div>
 
-      {tab === 'login' ? <LoginForm /> : <RegisterForm />}
+      {tab === 'login'
+        ? <LoginForm redirectTo={redirectTo} forwardState={forwardState} />
+        : <RegisterForm redirectTo={redirectTo} forwardState={forwardState} />
+      }
     </div>
   );
 }

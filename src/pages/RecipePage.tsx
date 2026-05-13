@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, MoreHorizontal, Sparkles, Clock,
-  Heart, Share2, Bookmark, Check, ChefHat, Plus,
-  ArrowRight, Users, BarChart2, ListChecks, LogIn,
+  Share2, Bookmark, Check, ChefHat, Plus,
+  ArrowRight, Users, BarChart2, ListChecks, LogIn, Send,
 } from 'lucide-react';
 import type { Recipe, RecipeStep, RecipeSuggestion, RecipeApiResponse } from '../types';
 import { useAuthContext } from '../context/AuthContext';
@@ -237,6 +237,7 @@ export default function RecipePage() {
   const alreadySaved = recipe ? isRecipeSaved(recipe.name) : false;
 
   const [saving, setSaving] = useState(false);
+  const [savedRecipeId, setSavedRecipeId] = useState<string | undefined>();
   const [toastMsg, setToastMsg] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
 
@@ -249,14 +250,19 @@ export default function RecipePage() {
   const handleSave = async () => {
     if (!recipe) return;
     if (!user) {
-      navigate('/login');
+      navigate('/login', { state: { from: '/recipe', recipeResponse, originalIngredients } });
       return;
     }
     if (alreadySaved) return;
     setSaving(true);
-    const ok = await saveRecipe(recipe);
+    const { ok, id } = await saveRecipe(recipe);
     setSaving(false);
-    showToast(ok ? '已保存到我的菜谱' : '保存失败，请重试');
+    if (ok) {
+      setSavedRecipeId(id);
+      showToast('已保存到我的菜谱');
+    } else {
+      showToast('保存失败，请重试');
+    }
   };
 
   const handleSelectSuggestion = (suggestion: RecipeSuggestion) => {
@@ -311,40 +317,46 @@ export default function RecipePage() {
       {/* 底部操作栏 */}
       <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         {!isSuggestions ? (
-          <div className="flex items-center gap-4 px-5 py-4 pb-6">
-            {/* 左侧操作 */}
-            <div className="flex gap-3">
-              <button className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-red-500 transition-colors">
-                <Heart size={22} />
-                <span className="text-[10px]">收藏</span>
-              </button>
+          <div className="px-5 py-4 pb-6 space-y-3">
+            {/* 收藏按钮 */}
+            <div className="flex items-center gap-3">
               <button className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 transition-colors">
                 <Share2 size={22} />
                 <span className="text-[10px]">分享</span>
               </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || alreadySaved}
+                className={`flex-1 h-13 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all py-3.5 disabled:opacity-70 disabled:scale-100 ${
+                  alreadySaved ? 'bg-[#84B741] text-white' : 'bg-slate-900 text-white'
+                }`}
+              >
+                {alreadySaved ? (
+                  <><Check size={18} /> 已保存</>
+                ) : !user ? (
+                  <><LogIn size={18} /> 登录后保存</>
+                ) : saving ? (
+                  <span className="flex gap-1">
+                    <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                ) : (
+                  <><Bookmark size={18} /> 保存到我的菜谱</>
+                )}
+              </button>
             </div>
-            {/* 收藏按钮 */}
-            <button
-              onClick={handleSave}
-              disabled={saving || alreadySaved}
-              className={`flex-1 h-13 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all py-3.5 disabled:opacity-70 disabled:scale-100 ${
-                alreadySaved ? 'bg-[#84B741] text-white' : 'bg-slate-900 text-white'
-              }`}
-            >
-              {alreadySaved ? (
-                <><Check size={18} /> 已保存</>
-              ) : !user ? (
-                <><LogIn size={18} /> 登录后保存</>
-              ) : saving ? (
-                <span className="flex gap-1">
-                  <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </span>
-              ) : (
-                <><Bookmark size={18} /> 保存到我的菜谱</>
-              )}
-            </button>
+            {/* 发布到社区（保存后出现） */}
+            {(alreadySaved || savedRecipeId) && (
+              <button
+                onClick={() => navigate('/publish', {
+                  state: { recipeId: savedRecipeId, recipe },
+                })}
+                className="w-full py-3 rounded-full border-2 border-[#84B741] text-[#84B741] font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+              >
+                <Send size={16} /> 发布到社区
+              </button>
+            )}
           </div>
         ) : (
           <div className="px-5 py-4 pb-6">
