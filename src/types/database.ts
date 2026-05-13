@@ -6,6 +6,7 @@ export interface Database {
           id: string;
           username: string | null;
           email: string | null;
+          nickname: string | null;
           bio: string | null;
           avatar_url: string | null;
           avatar_emoji: string;
@@ -19,6 +20,7 @@ export interface Database {
           id: string;
           username?: string | null;
           email?: string | null;
+          nickname?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
           avatar_emoji?: string;
@@ -26,6 +28,7 @@ export interface Database {
         Update: {
           username?: string | null;
           email?: string | null;
+          nickname?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
           avatar_emoji?: string;

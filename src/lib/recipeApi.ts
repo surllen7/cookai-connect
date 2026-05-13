@@ -176,28 +176,24 @@ export async function generateRecipe(
   condiments: string[],
   onChunk?: (delta: string) => void,
 ): Promise<RecipeApiResponse> {
-  const condimentStr = condiments.length > 0 ? `，调料有：${condiments.join('、')}` : '';
+  const allIngredients = [...mainIngredients, ...condiments];
 
   // 推荐模式：主食材太少，给用户多个方案参考
   if (mainIngredients.length <= SUGGESTION_THRESHOLD) {
-    const userMessage = `我手头只有 ${mainIngredients.join('、') || '一些食材'}${condimentStr}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。`;
+    const userMessage = condiments.length > 0
+      ? `我手头只有 ${mainIngredients.join('、')}，另外有调料：${condiments.join('、')}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。`
+      : `我手头只有 ${mainIngredients.join('、')}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。`;
+
     const content = await callDeepSeek(SUGGESTION_SYSTEM_PROMPT, userMessage, onChunk);
     const data = extractJson(content) as RecipeApiResponse['data'];
     return { mode: 'suggestions', data: data as never };
   }
 
-  // 精选模式：主食材过多，让 AI 挑选最佳搭配
-  if (mainIngredients.length >= ABUNDANCE_THRESHOLD) {
-    const userMessage = `我冰箱里有很多食材：${mainIngredients.join('、')}${condimentStr}。食材太多了，请你作为主厨帮我从中精选出最适合搭配的几种，然后设计一道家常菜。`;
-    const content = await callDeepSeek(ABUNDANCE_SYSTEM_PROMPT, userMessage, onChunk);
-    const data = extractJson(content) as RecipeApiResponse['data'];
-    return { mode: 'recipe', data: data as never };
-  }
-
-  // 生成模式：食材适中，直接生成一道菜
-  const userMessage = mainIngredients.length > 0
-    ? `我现在有以下食材：${mainIngredients.join('、')}${condimentStr}。请根据这些食材为我设计一道美味的家常菜。`
+  // 生成模式：食材充足，直接生成一道菜
+  const userMessage = allIngredients.length > 0
+    ? `我现在有以下食材：${mainIngredients.join('、')}${condiments.length > 0 ? `，调料有：${condiments.join('、')}` : ''}。请根据这些食材为我设计一道美味的家常菜。`
     : '请为我推荐一道简单好做的家常菜。';
+
   const content = await callDeepSeek(RECIPE_SYSTEM_PROMPT, userMessage, onChunk);
   const data = extractJson(content) as RecipeApiResponse['data'];
   return { mode: 'recipe', data: data as never };

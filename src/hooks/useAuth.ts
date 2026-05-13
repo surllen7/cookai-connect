@@ -8,6 +8,13 @@ export function buildDefaultPassword(email: string): string {
   return `Cookai@${prefix}`;
 }
 
+// 自动生成昵称：知食分子 + 时间戳后4位 + 2位随机数（共6位数字，低碰撞）
+function generateNickname(): string {
+  const ts = String(Date.now()).slice(-4);
+  const rand = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+  return `知食分子${ts}${rand}`;
+}
+
 export function useAuth() {
   const [user, setUser]       = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -93,9 +100,10 @@ export function useAuth() {
     }
 
     if (username && data.user) {
+      const nickname = generateNickname();
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({ id: data.user.id, username, email });
+        .upsert({ id: data.user.id, username, email, nickname });
       if (profileError) return { error: profileError };
     }
 
@@ -120,9 +128,16 @@ export function useAuth() {
     return { error, defaultPassword: defaultPwd };
   };
 
+  // 更新用户资料（nickname、avatar_emoji）
+  const updateProfile = async (updates: { nickname?: string; avatar_emoji?: string }) => {
+    if (!user) return { error: { message: '未登录' } };
+    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signUp, signIn, sendOtp, verifyOtp, changePassword, resetToDefaultPassword, signOut };
+  return { user, session, loading, signUp, signIn, sendOtp, verifyOtp, changePassword, resetToDefaultPassword, updateProfile, signOut };
 }

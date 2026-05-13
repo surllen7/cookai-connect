@@ -182,6 +182,8 @@ function LoginForm({ redirectTo, forwardState }: { redirectTo: string; forwardSt
   };
 
   return (
+    <div className="flex flex-col gap-4">
+      <IdentifierInput
         value={identifier}
         onChange={(v) => { setIdentifier(v); setErrors((e) => ({ ...e, identifier: '' })); }}
         error={errors.identifier}

@@ -11,6 +11,7 @@ interface AuthContextValue {
   verifyOtp: (email: string, token: string, password?: string, username?: string) => Promise<{ error: unknown; existed?: boolean }>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ error: unknown }>;
   resetToDefaultPassword: (email: string) => Promise<{ error: unknown; defaultPassword: string }>;
+  updateProfile: (updates: { nickname?: string; avatar_emoji?: string }) => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
 }
 
