@@ -8,6 +8,7 @@ import {
 import type { Recipe, RecipeStep, RecipeSuggestion, RecipeApiResponse } from '../types';
 import { useAuthContext } from '../context/AuthContext';
 import { useSavedRecipes } from '../hooks/useSavedRecipes';
+import RecipeAIAssistant from '../components/RecipeAIAssistant';
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1598514982205-f36b96d1e8d4?q=80&w=2070&auto=format&fit=crop';
 
@@ -369,6 +370,9 @@ export default function RecipePage() {
           </div>
         )}
       </div>
+
+      {/* AI 助手 */}
+      {recipe && !isSuggestions && <RecipeAIAssistant recipe={recipe} />}
     </div>
   );
 }

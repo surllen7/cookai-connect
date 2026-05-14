@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Trash2, ArrowRight, Sparkles } from 'lucide-react';
+import { Search, Trash2, ArrowRight, Sparkles, Download } from 'lucide-react';
 import CategorySection from '../components/CategorySection';
 import PreferenceSelector from '../components/PreferenceSelector';
+import IOSInstallGuide from '../components/IOSInstallGuide';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { INITIAL_INGREDIENTS, FLAVOR_TAGS, COOK_METHOD_TAGS } from '../constants/mockData';
 import type { IngredientCategory, IngredientsState } from '../types';
 
@@ -13,6 +15,7 @@ export default function HomePage() {
   const [ingredients, setIngredients] = useState<IngredientsState>(INITIAL_INGREDIENTS);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
   const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
+  const { installable, handleInstall, isIOS, isStandalone } = usePWAInstall();
 
   const toggleIngredient = (category: IngredientCategory, id: string) => {
     setIngredients((prev) => ({
@@ -75,11 +78,21 @@ export default function HomePage() {
 
   return (
     <>
+      {isIOS && !isStandalone && <IOSInstallGuide />}
       <header className="px-6 pt-12 pb-4 flex items-center justify-between bg-[#FDFBF7] z-10 shrink-0">
         <div className="text-2xl font-bold tracking-tight">
           <span className="text-[#84B741]">CookAI</span> <span className="text-slate-800">Connect</span>
         </div>
         <div className="flex items-center gap-3">
+          {installable && (
+            <button 
+              onClick={handleInstall}
+              className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#9ED05B] to-[#A8DC64] shadow-md flex items-center justify-center text-white border border-white hover:opacity-90 transition-all animate-bounce-subtle"
+              title="安装应用"
+            >
+              <Download size={20} strokeWidth={2.5} />
+            </button>
+          )}
           <button className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-600 border border-slate-100 hover:bg-slate-50 transition-colors">
             <Search size={20} />
           </button>

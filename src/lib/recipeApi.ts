@@ -1,4 +1,4 @@
-import type { RecipeApiResponse, UserPreferences } from '../types';
+import type { Recipe, RecipeApiResponse, UserPreferences } from '../types';
 import { FLAVOR_TAGS, COOK_METHOD_TAGS } from '../constants/mockData';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
@@ -238,4 +238,22 @@ export async function generateRecipe(
   const content = await callDeepSeek(sysPrompt, userMessage, onChunk);
   const data = extractJson(content) as RecipeApiResponse['data'];
   return { mode: 'recipe', data: data as never };
+}
+export async function askAssistant(
+  recipe: Recipe,
+  question: string,
+  onChunk?: (delta: string) => void,
+): Promise<string> {
+  const recipeJson = JSON.stringify(recipe, null, 2);
+  const systemPrompt = `你是一位贴心的 AI 烹饪助手。
+当前用户正在查看一份菜谱，你的任务是回答用户关于这份菜谱或烹饪过程中遇到的任何问题。
+- 如果用户问及关于当前菜谱的具体替换（如“没有烤箱可以用空气炸锅吗？”），请给出专业且实用的建议。
+- 如果用户在烹饪中遇到困难（如“肉炖不烂怎么办？”），请分析可能的原因并提供解决方案。
+- 语气要亲切、专业、简洁。
+- 如果问题与烹饪无关，请礼貌地引导用户回到美食话题。
+
+当前菜谱信息如下：
+${recipeJson}`;
+
+  return callDeepSeek(systemPrompt, question, onChunk);
 }
