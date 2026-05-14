@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Bookmark, ChefHat, Send, CornerDownRight } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Bookmark, ChefHat, Send, CornerDownRight, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -24,6 +24,7 @@ interface PostDetail {
 
 interface Comment {
   id: string;
+  user_id: string;
   content: string;
   likes_count: number;
   created_at: string;
@@ -49,16 +50,33 @@ function displayName(a: { nickname: string | null; username: string | null }) {
   return a.nickname ?? a.username ?? '知食分子';
 }
 
+// 渲染评论正文：首段 @xxx 用绿色高亮
+function renderCommentContent(content: string) {
+  const match = content.match(/^@(\S+)\s/);
+  if (!match) return <>{content}</>;
+  const rest = content.slice(match[0].length);
+  return (
+    <>
+      <span className="text-[#84B741] font-semibold">@{match[1]}</span>
+      <span> {rest}</span>
+    </>
+  );
+}
+
 // ── 评论项组件 ────────────────────────────────────────────────
 
 function CommentItem({
   comment,
+  currentUserId,
   onLike,
   onReply,
+  onDelete,
 }: {
   comment: Comment;
+  currentUserId: string | undefined;
   onLike: (id: string, toLike: boolean, isReply?: boolean, parentId?: string) => void;
   onReply: (id: string, name: string) => void;
+  onDelete: (id: string, isReply?: boolean, parentId?: string) => void;
 }) {
   return (
     <div className="flex gap-3 py-3">
@@ -70,7 +88,7 @@ function CommentItem({
           <span className="text-xs font-semibold text-slate-700">{displayName(comment.author)}</span>
           <span className="text-[10px] text-slate-400">{timeAgo(comment.created_at)}</span>
         </div>
-        <p className="text-sm text-slate-700 mt-0.5 leading-relaxed">{comment.content}</p>
+        <p className="text-sm text-slate-700 mt-0.5 leading-relaxed">{renderCommentContent(comment.content)}</p>
         <div className="flex items-center gap-4 mt-1.5">
           <button
             onClick={() => onReply(comment.id, displayName(comment.author))}
@@ -89,6 +107,14 @@ function CommentItem({
             />
             <span className={comment.liked ? 'text-red-400' : ''}>{comment.likes_count || ''}</span>
           </button>
+          {currentUserId === comment.user_id && (
+            <button
+              onClick={() => onDelete(comment.id)}
+              className="text-[11px] text-slate-400 flex items-center gap-1 active:text-red-500"
+            >
+              <Trash2 size={11} /> 删除
+            </button>
+          )}
         </div>
 
         {/* 子回复 */}
@@ -104,7 +130,7 @@ function CommentItem({
                     <span className="text-[11px] font-semibold text-slate-700">{displayName(reply.author)}</span>
                     <span className="text-[10px] text-slate-400">{timeAgo(reply.created_at)}</span>
                   </div>
-                  <p className="text-xs text-slate-700 mt-0.5 leading-relaxed">{reply.content}</p>
+                  <p className="text-xs text-slate-700 mt-0.5 leading-relaxed">{renderCommentContent(reply.content)}</p>
                   <div className="flex items-center gap-4 mt-1">
                     <button
                       onClick={() => onReply(comment.id, displayName(reply.author))}
@@ -123,6 +149,14 @@ function CommentItem({
                       />
                       <span className={reply.liked ? 'text-red-400' : ''}>{reply.likes_count || ''}</span>
                     </button>
+                    {currentUserId === reply.user_id && (
+                      <button
+                        onClick={() => onDelete(reply.id, true, comment.id)}
+                        className="text-[10px] text-slate-400 flex items-center gap-1 active:text-red-500"
+                      >
+                        <Trash2 size={10} /> 删除
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -210,7 +244,7 @@ export default function PostDetailPage() {
     if (!id) return;
     const { data, error } = await supabase
       .from('comments')
-      .select('id, content, likes_count, created_at, parent_id, profiles(username, nickname, avatar_emoji)')
+      .select('id, user_id, content, likes_count, created_at, parent_id, profiles(username, nickname, avatar_emoji)')
       .eq('target_type', 'post')
       .eq('target_id', id)
       .order('created_at', { ascending: true });
@@ -232,6 +266,7 @@ export default function PostDetailPage() {
       const profile = Array.isArray(raw.profiles) ? raw.profiles[0] : raw.profiles;
       return {
         id: raw.id,
+        user_id: raw.user_id,
         content: raw.content,
         likes_count: raw.likes_count,
         created_at: raw.created_at,
@@ -328,8 +363,42 @@ export default function PostDetailPage() {
   const handleReply = (commentId: string, name: string) => {
     if (!user) { navigate('/login'); return; }
     setReplyTo({ id: commentId, name });
-    setInputValue(`回复 @${name}：`);
+    setInputValue('');
     setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  // 删除自己的评论（DB cascade 删子回复，comments_count 触发器自动维护）
+  const handleDeleteComment = async (commentId: string, isReply = false, parentId?: string) => {
+    if (!user) return;
+    if (!window.confirm('确定删除这条评论？')) return;
+
+    // 乐观更新：从本地剔除
+    let removedCount = 1;
+    setComments((prev) => {
+      if (isReply && parentId) {
+        return prev.map((c) =>
+          c.id === parentId
+            ? { ...c, replies: c.replies.filter((r) => r.id !== commentId) }
+            : c
+        );
+      }
+      const target = prev.find((c) => c.id === commentId);
+      if (target) removedCount = 1 + target.replies.length;
+      return prev.filter((c) => c.id !== commentId);
+    });
+    setPost((p) => p ? { ...p, comments_count: Math.max(p.comments_count - removedCount, 0) } : p);
+
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      // 失败回滚：重新拉取
+      await fetchComments();
+      await fetchPost();
+    }
   };
 
   // 提交评论
@@ -338,9 +407,8 @@ export default function PostDetailPage() {
     const text = inputValue.trim();
     if (!text || !id) return;
 
-    // 去掉"回复 @xxx：" 前缀，只保留正文
-    const content = replyTo ? text.replace(/^回复 @.+?：/, '').trim() : text;
-    if (!content) return;
+    // 回复时把 @目标名 写入正文存库；展示时高亮渲染
+    const content = replyTo ? `@${replyTo.name} ${text}` : text;
 
     setSubmitting(true);
     const { error } = await supabase.from('comments').insert({
@@ -503,8 +571,10 @@ export default function PostDetailPage() {
                 <CommentItem
                   key={c.id}
                   comment={c}
+                  currentUserId={user?.id}
                   onLike={handleLikeComment}
                   onReply={handleReply}
+                  onDelete={handleDeleteComment}
                 />
               ))}
             </div>

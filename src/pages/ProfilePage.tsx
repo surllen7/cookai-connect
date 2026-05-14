@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, ChefHat, KeyRound, Lock, Eye, EyeOff, X, Copy, Check, Send, Settings, LogOut, Heart, Pencil, ChevronRight } from 'lucide-react';
+import { Clock, ChefHat, KeyRound, Lock, Eye, EyeOff, X, Copy, Check, Send, Settings, LogOut, Heart, Pencil, ChevronRight, Bookmark } from 'lucide-react';
 import { useAuthContext } from '../context/AuthContext';
 import { useSavedRecipes } from '../hooks/useSavedRecipes';
 import { buildDefaultPassword } from '../hooks/useAuth';
@@ -466,6 +466,18 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => { await signOut(); navigate('/login'); };
+
+  // 取消收藏帖子（乐观更新 + 本地剔除）
+  const handleUnsavePost = async (postId: string) => {
+    if (!user?.id) return;
+    setSavedPosts((prev) => prev.filter((p) => p.id !== postId));
+    await supabase
+      .from('saves')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('target_type', 'post')
+      .eq('target_id', postId);
+  };
   const email = user?.email ?? null;
   const totalLikes = userPosts.reduce((sum, p) => sum + p.likes_count, 0);
 
@@ -669,6 +681,13 @@ export default function ProfilePage() {
                         ? <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center text-5xl">🍳</div>
                       }
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleUnsavePost(post.id); }}
+                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/45 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-transform"
+                        aria-label="取消收藏"
+                      >
+                        <Bookmark size={13} fill="#84B741" stroke="#84B741" />
+                      </button>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-2.5 py-2">
                         <span className="flex items-center gap-1 text-white text-xs font-semibold">
                           <Heart size={11} fill="white" stroke="none" />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, PlusCircle, Heart, ChefHat } from 'lucide-react';
+import { Search, PlusCircle, Heart, ChefHat, MessageCircle, Bookmark } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -11,6 +11,8 @@ interface CommunityPost {
   images: string[];
   tags: string[];
   likes_count: number;
+  comments_count: number;
+  saves_count: number;
   recipe_id: string | null;
   created_at: string;
   author: {
@@ -49,24 +51,38 @@ function PostCard({ post, onLike, onClick }: { post: CommunityPost; onLike: (id:
             ))}
           </div>
         )}
-        <div className="flex justify-between items-center text-xs text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-[#EAF2D7] flex items-center justify-center text-xs">
+        <div className="flex justify-between items-center text-xs text-slate-500 gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-5 h-5 rounded-full bg-[#EAF2D7] flex items-center justify-center text-xs shrink-0">
               {post.author.avatar_emoji}
             </div>
-            <span className="truncate max-w-[60px]">{post.author.username ?? '美食家'}</span>
+            <span className="truncate">{post.author.username ?? '美食家'}</span>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onLike(post.id, !post.liked); }}
-            className="flex items-center gap-1 transition-colors active:scale-95"
-          >
-            <Heart
-              size={14}
-              fill={post.liked ? '#ef4444' : 'none'}
-              stroke={post.liked ? '#ef4444' : 'currentColor'}
-            />
-            <span className={post.liked ? 'text-red-500' : ''}>{post.likes_count}</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); onLike(post.id, !post.liked); }}
+              className="flex items-center gap-0.5 transition-colors active:scale-95"
+            >
+              <Heart
+                size={13}
+                fill={post.liked ? '#ef4444' : 'none'}
+                stroke={post.liked ? '#ef4444' : 'currentColor'}
+              />
+              <span className={post.liked ? 'text-red-500' : ''}>{post.likes_count}</span>
+            </button>
+            {post.comments_count > 0 && (
+              <span className="flex items-center gap-0.5">
+                <MessageCircle size={13} />
+                {post.comments_count}
+              </span>
+            )}
+            {post.saves_count > 0 && (
+              <span className="flex items-center gap-0.5 text-[#84B741]">
+                <Bookmark size={13} />
+                {post.saves_count}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -84,7 +100,7 @@ export default function CommunityPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('posts')
-      .select('id, title, content, images, tags, likes_count, recipe_id, created_at, profiles(username, avatar_emoji)')
+      .select('id, title, content, images, tags, likes_count, comments_count, saves_count, recipe_id, created_at, profiles(username, avatar_emoji)')
       .order('created_at', { ascending: false })
       .limit(40);
 
@@ -111,6 +127,8 @@ export default function CommunityPage() {
           images: p.images ?? [],
           tags: p.tags ?? [],
           likes_count: p.likes_count,
+          comments_count: p.comments_count ?? 0,
+          saves_count: p.saves_count ?? 0,
           recipe_id: p.recipe_id,
           created_at: p.created_at,
           author: {
