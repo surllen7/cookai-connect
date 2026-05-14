@@ -64,3 +64,21 @@ export interface RecipeSuggestion {
 export type RecipeApiResponse =
   | { mode: 'recipe'; data: Recipe }
   | { mode: 'suggestions'; data: RecipeSuggestion[] };
+
+export interface FlavorTag {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
+export interface CookMethodTag {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
+export interface UserPreferences {
+  flavors: string[];
+  cookMethods: string[];
+}
+

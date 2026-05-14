@@ -38,10 +38,11 @@ export default function LoadingPage() {
 
     const mainIngredients: string[] = state?.mainIngredients ?? [];
     const condiments: string[] = state?.condiments ?? [];
+    const preferences = state?.preferences ?? { flavors: [], cookMethods: [] };
 
     const run = async () => {
       try {
-        const response = await generateRecipe(mainIngredients, condiments, (delta) => {
+        const response = await generateRecipe(mainIngredients, condiments, preferences, (delta) => {
           setStreamText((prev) => {
             const next = prev + delta;
             // 粗略用字符数估算进度，上限 90%（留给解析阶段）

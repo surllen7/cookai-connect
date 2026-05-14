@@ -390,6 +390,7 @@ export default function ProfilePage() {
   const { user, signOut, updateProfile } = useAuthContext();
   const { savedRecipes, loading } = useSavedRecipes(user?.id);
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
+  const [savedSubTab, setSavedSubTab] = useState<'recipes' | 'posts'>('recipes');
   const [showSettings, setShowSettings]           = useState(false);
   const [showResetModal, setShowResetModal]       = useState(false);
   const [showChangePwdModal, setShowChangePwdModal] = useState(false);
@@ -399,6 +400,8 @@ export default function ProfilePage() {
   const [avatarEmoji, setAvatarEmoji] = useState('🥑');
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<UserPost[]>([]);
+  const [savedPostsLoading, setSavedPostsLoading] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -419,6 +422,38 @@ export default function ProfilePage() {
       .order('created_at', { ascending: false })
       .then(({ data }) => { setUserPosts(data ?? []); setPostsLoading(false); });
   }, [user?.id, activeTab]);
+
+  useEffect(() => {
+    if (!user?.id || activeTab !== 'saved' || savedSubTab !== 'posts') return;
+    const fetchSavedPosts = async () => {
+      setSavedPostsLoading(true);
+      const { data: saves } = await supabase
+        .from('saves')
+        .select('target_id')
+        .eq('user_id', user.id)
+        .eq('target_type', 'post')
+        .order('created_at', { ascending: false });
+
+      if (!saves || saves.length === 0) {
+        setSavedPosts([]);
+        setSavedPostsLoading(false);
+        return;
+      }
+
+      const postIds = saves.map((s) => s.target_id);
+      const { data: posts } = await supabase
+        .from('posts')
+        .select('id, title, images, likes_count, created_at')
+        .in('id', postIds);
+
+      if (posts) {
+        const sortedPosts = posts.sort((a, b) => postIds.indexOf(a.id) - postIds.indexOf(b.id));
+        setSavedPosts(sortedPosts);
+      }
+      setSavedPostsLoading(false);
+    };
+    fetchSavedPosts();
+  }, [user?.id, activeTab, savedSubTab]);
 
   const handleSaveNickname = async (name: string) => {
     setNickname(name);
@@ -514,7 +549,7 @@ export default function ProfilePage() {
                 : 'bg-white border border-slate-200 text-slate-500'
             }`}
           >
-            ☆ 收藏菜谱
+            ☆ 我的收藏
           </button>
         </div>
 
@@ -535,7 +570,7 @@ export default function ProfilePage() {
           ) : (
             <div className="grid grid-cols-2 gap-0.5 px-0">
               {userPosts.map((post) => (
-                <div key={post.id} className="relative aspect-square bg-[#F4F9EE] overflow-hidden">
+                <div key={post.id} onClick={() => navigate(`/post/${post.id}`)} className="relative aspect-square bg-[#F4F9EE] overflow-hidden active:scale-[0.98] transition-transform cursor-pointer">
                   {post.images[0]
                     ? <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-5xl">🍳</div>
@@ -552,40 +587,100 @@ export default function ProfilePage() {
             </div>
           )
         ) : (
-          loading ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 rounded-full border-4 border-[#84B741] border-t-transparent animate-spin" />
-            </div>
-          ) : savedRecipes.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-slate-400 gap-3">
-              <ChefHat size={40} className="text-slate-200" />
-              <p className="text-sm font-medium text-slate-500">还没有收藏任何菜谱</p>
-              <button onClick={() => navigate('/')} className="text-[#84B741] text-sm font-semibold">
-                去选食材，让 AI 生成 →
+          <div className="flex flex-col">
+            <div className="flex px-5 gap-4 mb-3 border-b border-slate-100">
+              <button
+                onClick={() => setSavedSubTab('recipes')}
+                className={`pb-2 text-sm font-bold transition-colors relative ${
+                  savedSubTab === 'recipes' ? 'text-slate-800' : 'text-slate-400'
+                }`}
+              >
+                菜谱
+                {savedSubTab === 'recipes' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-[#84B741] rounded-full" />
+                )}
+              </button>
+              <button
+                onClick={() => setSavedSubTab('posts')}
+                className={`pb-2 text-sm font-bold transition-colors relative ${
+                  savedSubTab === 'posts' ? 'text-slate-800' : 'text-slate-400'
+                }`}
+              >
+                帖子
+                {savedSubTab === 'posts' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-[#84B741] rounded-full" />
+                )}
               </button>
             </div>
-          ) : (
-            <div className="divide-y divide-slate-100 px-5">
-              {savedRecipes.map(({ id, recipe, saved_at }) => (
-                <div key={id} className="flex items-center gap-4 py-4">
-                  <div className="w-14 h-14 rounded-2xl bg-[#F4F9EE] flex items-center justify-center text-2xl shrink-0 border border-[#E8F4D4]">
-                    🍳
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-800 text-sm truncate">{recipe.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{recipe.nameEn}</p>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                      <span className="flex items-center gap-1"><Clock size={11} />{recipe.cookTime}</span>
-                      <span>{recipe.difficulty}</span>
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-slate-300 shrink-0">
-                    {new Date(saved_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
-                  </span>
+
+            {savedSubTab === 'recipes' ? (
+              loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 rounded-full border-4 border-[#84B741] border-t-transparent animate-spin" />
                 </div>
-              ))}
-            </div>
-          )
+              ) : savedRecipes.length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-slate-400 gap-3">
+                  <ChefHat size={40} className="text-slate-200" />
+                  <p className="text-sm font-medium text-slate-500">还没有收藏任何菜谱</p>
+                  <button onClick={() => navigate('/')} className="text-[#84B741] text-sm font-semibold">
+                    去选食材，让 AI 生成 →
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 px-5">
+                  {savedRecipes.map(({ id, recipe, saved_at }) => (
+                    <div key={id} className="flex items-center gap-4 py-4" onClick={() => navigate('/recipe', { state: { recipeResponse: { mode: 'recipe', data: recipe } } })}>
+                      <div className="w-14 h-14 rounded-2xl bg-[#F4F9EE] flex items-center justify-center text-2xl shrink-0 border border-[#E8F4D4]">
+                        🍳
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate">{recipe.name}</p>
+                        <p className="text-xs text-slate-400 truncate">{recipe.nameEn}</p>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
+                          <span className="flex items-center gap-1"><Clock size={11} />{recipe.cookTime}</span>
+                          <span>{recipe.difficulty}</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-300 shrink-0">
+                        {new Date(saved_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              savedPostsLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 rounded-full border-4 border-[#84B741] border-t-transparent animate-spin" />
+                </div>
+              ) : savedPosts.length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-slate-400 gap-3">
+                  <div className="text-5xl">📌</div>
+                  <p className="text-sm font-medium text-slate-500">还没有收藏任何帖子</p>
+                  <button onClick={() => navigate('/community')} className="text-[#84B741] text-sm font-semibold">
+                    去社区逛逛 →
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-0.5 px-0">
+                  {savedPosts.map((post) => (
+                    <div key={post.id} onClick={() => navigate(`/post/${post.id}`)} className="relative aspect-square bg-[#F4F9EE] overflow-hidden active:scale-[0.98] transition-transform cursor-pointer">
+                      {post.images[0]
+                        ? <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-5xl">🍳</div>
+                      }
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-2.5 py-2">
+                        <span className="flex items-center gap-1 text-white text-xs font-semibold">
+                          <Heart size={11} fill="white" stroke="none" />
+                          {post.likes_count}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
         )}
       </main>
 

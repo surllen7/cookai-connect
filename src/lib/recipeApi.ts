@@ -1,4 +1,5 @@
-import type { RecipeApiResponse } from '../types';
+import type { RecipeApiResponse, UserPreferences } from '../types';
+import { FLAVOR_TAGS, COOK_METHOD_TAGS } from '../constants/mockData';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 
@@ -17,6 +18,11 @@ const RECIPE_SYSTEM_PROMPT = `你是一位专业的中式家常菜大厨，擅�
 - difficulty 只能是：新手友好 / 有点挑战 / 厨艺进阶
 - cookTime 格式如：20分钟、1小时
 - tip 是一句实用的烹饪小贴士，不超过 40 字
+
+如果用户提供了口味偏好或烹饪方式偏好：
+- 口味偏好决定调味方向（如"减脂轻食"应少油少盐少糖，"无辣不欢"应加入辣椒类调料）
+- 烹饪方式偏好决定核心烹饪手法（如"清蒸"则以蒸为主，"空气炸锅"需适配无油/少油做法）
+- 偏好仅作为指导方向，如果与食材严重冲突可适当调整并在 tip 中说明
 
 请直接输出如下 JSON，不要添加任何额外文字或 markdown：
 {
@@ -45,6 +51,11 @@ const SUGGESTION_SYSTEM_PROMPT = `你是一位专业的中式家常菜大厨，�
 - difficulty 只能是：新手友好 / 有点挑战 / 厨艺进阶
 - cookTime 格式如：20分钟、1小时
 - tip 是一句实用烹饪小贴士，不超过 40 字
+
+如果用户提供了口味偏好或烹饪方式偏好：
+- 口味偏好决定调味方向（如"减脂轻食"应少油少盐少糖，"无辣不欢"应加入辣椒类调料）
+- 烹饪方式偏好决定核心烹饪手法（如"清蒸"则以蒸为主，"空气炸锅"需适配无油/少油做法）
+- 偏好仅作为指导方向，如果与食材严重冲突可适当调整并在 tip 中说明
 
 请直接输出如下 JSON 数组，不要添加任何额外文字或 markdown：
 [
@@ -76,6 +87,11 @@ const ABUNDANCE_SYSTEM_PROMPT = `你是一位专业的中式家常菜大厨，�
 - 其余字段要求与普通菜谱一致（配料含量面向 2 人份，步骤标题 + 描述不超过 60 字等）
 - difficulty 只能是：新手友好 / 有点挑战 / 厨艺进阶
 - cookTime 格式如：20分钟、1小时
+
+如果用户提供了口味偏好或烹饪方式偏好：
+- 口味偏好决定调味方向（如"减脂轻食"应少油少盐少糖，"无辣不欢"应加入辣椒类调料）
+- 烹饪方式偏好决定核心烹饪手法（如"清蒸"则以蒸为主，"空气炸锅"需适配无油/少油做法）
+- 偏好仅作为指导方向，如果与食材严重冲突可适当调整并在 tip 中说明
 
 请直接输出如下 JSON，不要添加任何额外文字或 markdown：
 {
@@ -171,18 +187,42 @@ async function callDeepSeek(
   return accumulated;
 }
 
+function buildPreferenceClause(preferences: UserPreferences): string {
+  const parts: string[] = [];
+
+  if (preferences.flavors.length > 0) {
+    const flavorLabels = preferences.flavors
+      .map((id) => FLAVOR_TAGS.find((t) => t.id === id)?.label)
+      .filter(Boolean);
+    parts.push(`口味偏好：${flavorLabels.join('、')}`);
+  }
+
+  if (preferences.cookMethods.length > 0) {
+    const methodLabels = preferences.cookMethods
+      .map((id) => COOK_METHOD_TAGS.find((t) => t.id === id)?.label)
+      .filter(Boolean);
+    parts.push(`烹饪方式偏好：${methodLabels.join('、')}`);
+  }
+
+  return parts.length > 0
+    ? `\n额外要求：${parts.join('；')}。请在菜谱设计中充分考虑这些偏好。`
+    : '';
+}
+
 export async function generateRecipe(
   mainIngredients: string[],
   condiments: string[],
+  preferences: UserPreferences,
   onChunk?: (delta: string) => void,
 ): Promise<RecipeApiResponse> {
   const allIngredients = [...mainIngredients, ...condiments];
+  const preferenceClause = buildPreferenceClause(preferences);
 
   // 推荐模式：主食材太少，给用户多个方案参考
   if (mainIngredients.length <= SUGGESTION_THRESHOLD) {
     const userMessage = condiments.length > 0
-      ? `我手头只有 ${mainIngredients.join('、')}，另外有调料：${condiments.join('、')}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。`
-      : `我手头只有 ${mainIngredients.join('、')}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。`;
+      ? `我手头只有 ${mainIngredients.join('、')}，另外有调料：${condiments.join('、')}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。${preferenceClause}`
+      : `我手头只有 ${mainIngredients.join('、')}。请为我推荐几个适合的菜谱方案，并告诉我每道菜还需要准备哪些食材。${preferenceClause}`;
 
     const content = await callDeepSeek(SUGGESTION_SYSTEM_PROMPT, userMessage, onChunk);
     const data = extractJson(content) as RecipeApiResponse['data'];
@@ -191,10 +231,11 @@ export async function generateRecipe(
 
   // 生成模式：食材充足，直接生成一道菜
   const userMessage = allIngredients.length > 0
-    ? `我现在有以下食材：${mainIngredients.join('、')}${condiments.length > 0 ? `，调料有：${condiments.join('、')}` : ''}。请根据这些食材为我设计一道美味的家常菜。`
-    : '请为我推荐一道简单好做的家常菜。';
+    ? `我现在有以下食材：${mainIngredients.join('、')}${condiments.length > 0 ? `，调料有：${condiments.join('、')}` : ''}。请根据这些食材为我设计一道美味的家常菜。${preferenceClause}`
+    : `请为我推荐一道简单好做的家常菜。${preferenceClause}`;
 
-  const content = await callDeepSeek(RECIPE_SYSTEM_PROMPT, userMessage, onChunk);
+  const sysPrompt = mainIngredients.length >= ABUNDANCE_THRESHOLD ? ABUNDANCE_SYSTEM_PROMPT : RECIPE_SYSTEM_PROMPT;
+  const content = await callDeepSeek(sysPrompt, userMessage, onChunk);
   const data = extractJson(content) as RecipeApiResponse['data'];
   return { mode: 'recipe', data: data as never };
 }

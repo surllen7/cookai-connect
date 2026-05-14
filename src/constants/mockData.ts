@@ -1,4 +1,4 @@
-import type { IngredientsState, Post } from '../types';
+import type { IngredientsState, Post, FlavorTag, CookMethodTag } from '../types';
 
 export const INITIAL_INGREDIENTS: IngredientsState = {
   meat: [
@@ -57,4 +57,23 @@ export const COMMUNITY_POSTS: Post[] = [
     image: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?q=80&w=1000&auto=format&fit=crop',
     height: 256,
   },
+];
+
+export const FLAVOR_TAGS: FlavorTag[] = [
+  { id: 'spicy',     label: '无辣不欢', emoji: '🌶️' },
+  { id: 'mild',      label: '清淡饮食', emoji: '🥗' },
+  { id: 'sweet_sour', label: '酸甜可口', emoji: '🍋' },
+  { id: 'savory',    label: '咸香浓郁', emoji: '🧈' },
+  { id: 'numbing',   label: '麻辣鲜香', emoji: '🫚' },
+  { id: 'light_fat', label: '减脂轻食', emoji: '💪' },
+];
+
+export const COOK_METHOD_TAGS: CookMethodTag[] = [
+  { id: 'stir_fry',  label: '爆炒',     emoji: '🔥' },
+  { id: 'steam',     label: '清蒸',     emoji: '♨️' },
+  { id: 'braise',    label: '红烧/慢炖', emoji: '🍲' },
+  { id: 'air_fry',   label: '空气炸锅',  emoji: '🍟' },
+  { id: 'cold_dish', label: '凉拌',     emoji: '🥒' },
+  { id: 'soup',      label: '煲汤',     emoji: '🥣' },
+  { id: 'no_oven',   label: '免烤箱',   emoji: '🚫' },
 ];

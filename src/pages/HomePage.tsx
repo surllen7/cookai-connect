@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Trash2, ArrowRight, Sparkles } from 'lucide-react';
 import CategorySection from '../components/CategorySection';
-import { INITIAL_INGREDIENTS } from '../constants/mockData';
+import PreferenceSelector from '../components/PreferenceSelector';
+import { INITIAL_INGREDIENTS, FLAVOR_TAGS, COOK_METHOD_TAGS } from '../constants/mockData';
 import type { IngredientCategory, IngredientsState } from '../types';
 
 const ABUNDANCE_THRESHOLD = 6;
@@ -10,6 +11,8 @@ const ABUNDANCE_THRESHOLD = 6;
 export default function HomePage() {
   const navigate = useNavigate();
   const [ingredients, setIngredients] = useState<IngredientsState>(INITIAL_INGREDIENTS);
+  const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
+  const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
 
   const toggleIngredient = (category: IngredientCategory, id: string) => {
     setIngredients((prev) => ({
@@ -44,6 +47,20 @@ export default function HomePage() {
       vegetable: INITIAL_INGREDIENTS.vegetable.map((i) => ({ ...i, selected: false })),
       condiment: INITIAL_INGREDIENTS.condiment.map((i) => ({ ...i, selected: false })),
     });
+    setSelectedFlavors([]);
+    setSelectedMethods([]);
+  };
+
+  const toggleFlavor = (id: string) => {
+    setSelectedFlavors((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleMethod = (id: string) => {
+    setSelectedMethods((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   };
 
   const mainIngredients = [...ingredients.meat, ...ingredients.vegetable]
@@ -136,6 +153,22 @@ export default function HomePage() {
             onAddCustom={addCustomIngredient}
             onRemoveCustom={removeCustomIngredient}
           />
+
+          <PreferenceSelector
+            title="口味偏好"
+            icon="🍳"
+            tags={FLAVOR_TAGS}
+            selected={selectedFlavors}
+            onToggle={toggleFlavor}
+          />
+          
+          <PreferenceSelector
+            title="烹饪方式"
+            icon="🔪"
+            tags={COOK_METHOD_TAGS}
+            selected={selectedMethods}
+            onToggle={toggleMethod}
+          />
         </div>
       </main>
 
@@ -143,7 +176,12 @@ export default function HomePage() {
         <button
           onClick={() =>
             navigate('/loading', {
-              state: { mainIngredients, condiments, originalIngredients: mainIngredients },
+              state: {
+                mainIngredients,
+                condiments,
+                originalIngredients: mainIngredients,
+                preferences: { flavors: selectedFlavors, cookMethods: selectedMethods },
+              },
             })
           }
           className="pointer-events-auto w-full max-w-[340px] h-[72px] rounded-full bg-gradient-to-r from-[#9ED05B] via-[#A8DC64] to-[#F7DE70] shadow-[0_12px_30px_rgba(158,208,91,0.35)] flex items-center justify-between px-3 pr-6 overflow-hidden relative group transform hover:scale-[1.02] transition-transform active:scale-[0.98]"
@@ -160,7 +198,7 @@ export default function HomePage() {
               <div className="text-white font-bold text-[22px] leading-tight tracking-wide drop-shadow-sm">AI 智能搭配</div>
               <div className="text-white/95 text-[11px] font-medium tracking-wide">
                 {totalSelected > 0
-                  ? `已选 ${totalSelected} 种食材${isAbundance ? ' · AI 精选模式' : ''}`
+                  ? `已选 ${totalSelected} 种食材${selectedFlavors.length > 0 || selectedMethods.length > 0 ? ' · 包含偏好' : ''}${isAbundance ? ' · 精选模式' : ''}`
                   : '让 AI 帮你生成美味菜谱'}
               </div>
             </div>

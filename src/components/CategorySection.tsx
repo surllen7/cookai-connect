@@ -165,7 +165,10 @@ export default function CategorySection({
                   value={inputValue}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`输入${title}名称，如：鸭肉`}
+                  placeholder={`输入${title}名称，如：${
+                    category === 'meat' ? '鸭肉' : 
+                    category === 'vegetable' ? '青椒' : '料酒'
+                  }`}
                   maxLength={15}
                   className={`w-full h-10 rounded-xl border px-3 text-sm text-slate-700 placeholder:text-slate-300 outline-none transition-colors ${
                     error

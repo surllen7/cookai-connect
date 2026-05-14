@@ -7,6 +7,7 @@ import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import PublishPage from './pages/PublishPage';
+import PostDetailPage from './pages/PostDetailPage';
 import BottomNav from './components/BottomNav';
 
 const MAIN_TABS = ['/', '/community', '/profile'];
@@ -36,6 +37,7 @@ function AppShell() {
           path="/publish"
           element={user ? <PublishPage /> : <Navigate to="/login" replace />}
         />
+        <Route path="/post/:id" element={<PostDetailPage />} />
         <Route
           path="/profile"
           element={user ? <ProfilePage /> : <Navigate to="/login" replace />}

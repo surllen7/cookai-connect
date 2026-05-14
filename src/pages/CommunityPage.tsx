@@ -20,12 +20,12 @@ interface CommunityPost {
   liked?: boolean;
 }
 
-function PostCard({ post, onLike }: { post: CommunityPost; onLike: (id: string, liked: boolean) => void }) {
+function PostCard({ post, onLike, onClick }: { post: CommunityPost; onLike: (id: string, liked: boolean) => void; onClick: (id: string) => void }) {
   const imgHeight = 140 + Math.floor(Math.random() * 80);
   const coverImg = post.images[0];
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col">
+    <div onClick={() => onClick(post.id)} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col active:scale-[0.98] transition-transform">
       <div className="w-full bg-slate-100 relative" style={{ height: imgHeight }}>
         {coverImg ? (
           <img src={coverImg} alt={post.title} className="w-full h-full object-cover" />
@@ -57,7 +57,7 @@ function PostCard({ post, onLike }: { post: CommunityPost; onLike: (id: string, 
             <span className="truncate max-w-[60px]">{post.author.username ?? '美食家'}</span>
           </div>
           <button
-            onClick={() => onLike(post.id, !post.liked)}
+            onClick={(e) => { e.stopPropagation(); onLike(post.id, !post.liked); }}
             className="flex items-center gap-1 transition-colors active:scale-95"
           >
             <Heart
@@ -186,12 +186,12 @@ export default function CommunityPage() {
           <div className="flex gap-4">
             <div className="w-1/2 flex flex-col gap-4">
               {leftPosts.map((post) => (
-                <PostCard key={post.id} post={post} onLike={handleLike} />
+                <PostCard key={post.id} post={post} onLike={handleLike} onClick={() => navigate(`/post/${post.id}`)} />
               ))}
             </div>
             <div className="w-1/2 flex flex-col gap-4 mt-6">
               {rightPosts.map((post) => (
-                <PostCard key={post.id} post={post} onLike={handleLike} />
+                <PostCard key={post.id} post={post} onLike={handleLike} onClick={() => navigate(`/post/${post.id}`)} />
               ))}
             </div>
           </div>
