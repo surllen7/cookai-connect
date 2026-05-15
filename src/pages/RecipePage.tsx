@@ -351,7 +351,7 @@ export default function RecipePage() {
             {(alreadySaved || savedRecipeId) && (
               <button
                 onClick={() => navigate('/publish', {
-                  state: { recipeId: savedRecipeId, recipe },
+                  state: { recipeId: savedRecipeId, recipe, challenge: state?.challenge },
                 })}
                 className="w-full py-3 rounded-full border-2 border-[#84B741] text-[#84B741] font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
               >

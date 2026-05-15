@@ -67,11 +67,17 @@ export default function PublishPage() {
   const isRecipePost = !!recipe;          // true = 菜谱贴，false = 纯内容贴
   const { user } = useAuthContext();
 
+  const challenge: string | undefined = state?.challenge;
+
   const [title, setTitle] = useState(recipe?.name ?? '');
   const [content, setContent] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>(challenge ? [challenge] : []);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
+
+  const displayTags = challenge && !PRESET_TAGS.includes(challenge) 
+    ? [challenge, ...PRESET_TAGS] 
+    : PRESET_TAGS;
 
   // 菜谱贴：单封面 + 步骤图
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -315,7 +321,7 @@ export default function PublishPage() {
         <div>
           <p className="text-xs font-bold text-slate-500 mb-2">添加标签（最多 5 个）</p>
           <div className="flex flex-wrap gap-2">
-            {PRESET_TAGS.map((tag) => {
+            {displayTags.map((tag) => {
               const selected = selectedTags.includes(tag);
               return (
                 <button

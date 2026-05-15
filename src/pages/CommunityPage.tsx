@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, PlusCircle, Heart, ChefHat, MessageCircle, Bookmark } from 'lucide-react';
+import { Search, PlusCircle, Heart, ChefHat, MessageCircle, Bookmark, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -23,66 +23,57 @@ interface CommunityPost {
 }
 
 function PostCard({ post, onLike, onClick }: { post: CommunityPost; onLike: (id: string, liked: boolean) => void; onClick: (id: string) => void }) {
-  const imgHeight = 140 + Math.floor(Math.random() * 80);
+  const imgHeight = 160 + Math.floor(Math.random() * 100);
   const coverImg = post.images[0];
 
   return (
-    <div onClick={() => onClick(post.id)} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex flex-col active:scale-[0.98] transition-transform">
-      <div className="w-full bg-slate-100 relative" style={{ height: imgHeight }}>
+    <div onClick={() => onClick(post.id)} className="group bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.03)] border border-slate-50 flex flex-col active:scale-[0.97] transition-all duration-300 hover:shadow-[0_12px_30px_rgba(0,0,0,0.06)] cursor-pointer">
+      <div className="w-full bg-slate-50 relative overflow-hidden" style={{ height: imgHeight }}>
         {coverImg ? (
-          <img src={coverImg} alt={post.title} className="w-full h-full object-cover" />
+          <img src={coverImg} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl bg-[#F4F9EE]">
+          <div className="w-full h-full flex items-center justify-center text-5xl bg-[#F9FBFA]">
             🍳
           </div>
         )}
         {post.recipe_id && (
-          <div className="absolute top-2 left-2 bg-[#84B741]/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-            <ChefHat size={9} /> 菜谱
+          <div className="absolute top-3 left-3 bg-black/30 backdrop-blur-md text-white text-[9px] font-black px-2 py-1 rounded-lg flex items-center gap-1.5 border border-white/20 shadow-sm">
+            <ChefHat size={10} strokeWidth={3} /> RECIPE
           </div>
         )}
       </div>
-      <div className="p-3">
-        <h3 className="font-bold text-slate-800 text-sm leading-snug mb-2 line-clamp-2">{post.title}</h3>
+      <div className="p-4">
+        <h3 className="font-bold text-slate-800 text-[14px] leading-[1.5] mb-2 line-clamp-2 group-hover:text-[#84B741] transition-colors">{post.title}</h3>
+        
         {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {post.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="text-[10px] text-[#84B741] bg-[#F4F9EE] px-1.5 py-0.5 rounded-full">{tag}</span>
+              <span key={tag} className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">
+                {tag.startsWith('#') ? tag : `#${tag}`}
+              </span>
             ))}
           </div>
         )}
-        <div className="flex justify-between items-center text-xs text-slate-500 gap-2">
+        
+        <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-5 h-5 rounded-full bg-[#EAF2D7] flex items-center justify-center text-xs shrink-0">
+            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[11px] shrink-0 border border-white shadow-sm">
               {post.author.avatar_emoji}
             </div>
-            <span className="truncate">{post.author.username ?? '美食家'}</span>
+            <span className="text-[11px] font-bold text-slate-500 truncate">{post.author.username ?? '美食家'}</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); onLike(post.id, !post.liked); }}
-              className="flex items-center gap-0.5 transition-colors active:scale-95"
-            >
-              <Heart
-                size={13}
-                fill={post.liked ? '#ef4444' : 'none'}
-                stroke={post.liked ? '#ef4444' : 'currentColor'}
-              />
-              <span className={post.liked ? 'text-red-500' : ''}>{post.likes_count}</span>
-            </button>
-            {post.comments_count > 0 && (
-              <span className="flex items-center gap-0.5">
-                <MessageCircle size={13} />
-                {post.comments_count}
-              </span>
-            )}
-            {post.saves_count > 0 && (
-              <span className="flex items-center gap-0.5 text-[#84B741]">
-                <Bookmark size={13} />
-                {post.saves_count}
-              </span>
-            )}
-          </div>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); onLike(post.id, !post.liked); }}
+            className={`flex items-center gap-1 transition-all active:scale-125 ${post.liked ? 'text-red-500' : 'text-slate-300 hover:text-slate-400'}`}
+          >
+            <Heart
+              size={14}
+              fill={post.liked ? '#ef4444' : 'none'}
+              strokeWidth={post.liked ? 0 : 2.5}
+            />
+            <span className="text-[11px] font-black">{post.likes_count > 0 ? post.likes_count : ''}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -106,7 +97,6 @@ export default function CommunityPage() {
 
     if (error || !data) { setLoading(false); return; }
 
-    // 查当前用户的点赞状态
     let likedIds = new Set<string>();
     if (user) {
       const { data: likeData } = await supabase
@@ -146,8 +136,6 @@ export default function CommunityPage() {
 
   const handleLike = async (postId: string, toLike: boolean) => {
     if (!user) { navigate('/login'); return; }
-
-    // 乐观更新
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -155,7 +143,6 @@ export default function CommunityPage() {
           : p
       )
     );
-
     if (toLike) {
       await supabase.from('likes').insert({ user_id: user.id, target_type: 'post', target_id: postId });
     } else {
@@ -168,46 +155,102 @@ export default function CommunityPage() {
   const rightPosts = posts.filter((_, i) => i % 2 !== 0);
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-50 relative pb-24">
-      <header className="px-6 pt-12 pb-2 bg-white flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-6 text-lg font-bold">
+    <div className="flex flex-col h-full w-full bg-[#FDFBF7] relative pb-24">
+      {/* Header */}
+      <header className="sticky top-0 px-6 pt-12 pb-3 bg-[#FDFBF7]/80 backdrop-blur-xl flex items-center justify-between z-30 transition-all border-b border-transparent">
+        <div className="flex items-center gap-6">
           {(['following', 'discover'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative pb-2 transition-colors ${activeTab === tab ? 'text-slate-800' : 'text-slate-400'}`}
+              className={`relative py-1 text-lg font-black transition-all duration-300 ${
+                activeTab === tab ? 'text-slate-900 scale-110' : 'text-slate-400 font-bold hover:text-slate-500'
+              }`}
             >
               {tab === 'following' ? '关注' : '发现'}
               {activeTab === tab && (
-                <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-[#84B741] rounded-full" />
+                <div className="absolute -bottom-1 left-0 right-0 h-1.5 bg-[#84B741] rounded-full opacity-60 animate-in fade-in zoom-in duration-300" />
               )}
             </button>
           ))}
         </div>
-        <button className="w-10 h-10 flex items-center justify-center text-slate-600">
-          <Search size={22} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button className="w-10 h-10 flex items-center justify-center text-slate-600 bg-white shadow-sm border border-slate-100 rounded-full hover:bg-slate-50 transition-all hover:scale-105 active:scale-95">
+            <Search size={20} strokeWidth={2.5} />
+          </button>
+        </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-20 hide-scrollbar">
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24 hide-scrollbar">
+        {/* Weekly Challenge Banner */}
+        {activeTab === 'discover' && (
+          <div className="mb-6 group px-1">
+            <div 
+              className="bg-gradient-to-br from-[#FF8C42] to-[#FF5E62] rounded-[32px] p-6 text-white shadow-[0_12px_30px_rgba(255,140,66,0.25)] relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer"
+              onClick={() => navigate('/', { state: { challenge: '#一个番茄能做什么#', ingredient: '番茄' } })}
+            >
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse" />
+              <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-black/5 rounded-full blur-2xl" />
+              
+              <div className="flex items-center gap-2 mb-2 relative z-10">
+                <div className="bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest uppercase border border-white/20">
+                  Weekly Hot Challenge
+                </div>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-1 h-1 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: `${i * 200}ms` }} />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="relative z-10">
+                <h2 className="text-2xl font-black mb-1 flex items-center gap-2 drop-shadow-md">
+                  #一个番茄能做什么#
+                  <Sparkles size={20} className="text-yellow-200" />
+                </h2>
+                <p className="text-[12px] text-white/90 font-medium mb-4">发挥你的创意，分享番茄的无限可能 ✨</p>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-2.5">
+                      {['🍅', '🍳', '🍝'].map((emoji, i) => (
+                        <div key={i} className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30 flex items-center justify-center text-base shadow-sm ring-2 ring-transparent group-hover:ring-white/20 transition-all">
+                          {emoji}
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-bold text-white/80 ml-1">99+ 位美食家已参加</span>
+                  </div>
+                  
+                  <button className="bg-white text-[#FF5E62] px-5 py-2 rounded-full text-[12px] font-black shadow-[0_4px_12px_rgba(255,255,255,0.3)] hover:translate-y-[-2px] transition-transform flex items-center gap-1.5">
+                    立即参与 <PlusCircle size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 rounded-full border-4 border-[#84B741] border-t-transparent animate-spin" />
+          <div className="flex justify-center py-20">
+            <div className="w-10 h-10 rounded-full border-[3px] border-[#84B741] border-t-transparent animate-spin" />
           </div>
         ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center py-20 text-slate-400 gap-3">
-            <div className="text-5xl">🍽️</div>
-            <p className="text-sm">还没有人发布菜谱</p>
-            <p className="text-xs text-slate-300">成为第一个分享的人吧！</p>
+          <div className="flex flex-col items-center py-32 text-slate-400 gap-4 text-center">
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-4xl mb-2 animate-bounce-subtle">🍽️</div>
+            <div>
+              <p className="font-bold text-slate-800">还没有人发布菜谱</p>
+              <p className="text-xs text-slate-400 mt-1">成为第一个分享的人吧！</p>
+            </div>
           </div>
         ) : (
-          <div className="flex gap-4">
+          <div className="flex gap-3 px-1">
             <div className="w-1/2 flex flex-col gap-4">
               {leftPosts.map((post) => (
                 <PostCard key={post.id} post={post} onLike={handleLike} onClick={() => navigate(`/post/${post.id}`)} />
               ))}
             </div>
-            <div className="w-1/2 flex flex-col gap-4 mt-6">
+            <div className="w-1/2 flex flex-col gap-4 mt-8">
               {rightPosts.map((post) => (
                 <PostCard key={post.id} post={post} onLike={handleLike} onClick={() => navigate(`/post/${post.id}`)} />
               ))}
@@ -221,9 +264,9 @@ export default function CommunityPage() {
           if (!user) { navigate('/login'); return; }
           navigate('/publish', { state: {} });
         }}
-        className="absolute bottom-28 right-6 w-14 h-14 bg-[#84B741] text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-20"
+        className="fixed bottom-28 right-6 w-14 h-14 bg-[#84B741] text-white rounded-full flex items-center justify-center shadow-[0_8px_25px_rgba(132,183,65,0.4)] hover:scale-110 active:scale-95 transition-all z-40 border-4 border-white"
       >
-        <PlusCircle size={28} />
+        <PlusCircle size={30} strokeWidth={2.5} />
       </button>
     </div>
   );

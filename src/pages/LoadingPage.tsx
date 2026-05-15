@@ -51,10 +51,22 @@ export default function LoadingPage() {
           });
         });
         setProgress(100);
-        navigate('/recipe', { state: { recipeResponse: response }, replace: true });
+        navigate('/recipe', { 
+          state: { 
+            recipeResponse: response,
+            challenge: state?.challenge
+          }, 
+          replace: true 
+        });
       } catch (err) {
         console.error('[CookAI] 菜谱生成失败，使用示例菜谱', err);
-        navigate('/recipe', { state: { recipeResponse: { mode: 'recipe', data: FALLBACK_RECIPE } }, replace: true });
+        navigate('/recipe', { 
+          state: { 
+            recipeResponse: { mode: 'recipe', data: FALLBACK_RECIPE },
+            challenge: state?.challenge
+          }, 
+          replace: true 
+        });
       }
     };
 

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Trash2, ArrowRight, Sparkles, Download } from 'lucide-react';
 import CategorySection from '../components/CategorySection';
 import PreferenceSelector from '../components/PreferenceSelector';
@@ -12,10 +12,39 @@ const ABUNDANCE_THRESHOLD = 6;
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [ingredients, setIngredients] = useState<IngredientsState>(INITIAL_INGREDIENTS);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
   const [selectedMethods, setSelectedMethods] = useState<string[]>([]);
   const { installable, handleInstall, isIOS, isStandalone } = usePWAInstall();
+
+  // 处理挑战赛状态
+  useEffect(() => {
+    const state = location.state as { challenge?: string; ingredient?: string };
+    if (state?.challenge && state?.ingredient) {
+      // 自动勾选对应食材
+      setIngredients(prev => {
+        const newState = { ...prev };
+        // 在蔬菜分类中查找（番茄通常在蔬菜类，可以扩展为全局查找）
+        const hasVegetable = newState.vegetable.some(i => i.name === state.ingredient);
+        if (hasVegetable) {
+          newState.vegetable = newState.vegetable.map(item => 
+            item.name === state.ingredient ? { ...item, selected: true } : item
+          );
+        } else {
+          // 如果没找到，作为自定义食材添加
+          const id = `challenge_${Date.now()}`;
+          newState.vegetable = [
+            ...newState.vegetable,
+            { id, name: state.ingredient!, icon: '🍅', selected: true, custom: true }
+          ];
+        }
+        return newState;
+      });
+    }
+  }, [location.state]);
+
+  const activeChallenge = (location.state as { challenge?: string })?.challenge;
 
   const toggleIngredient = (category: IngredientCategory, id: string) => {
     setIngredients((prev) => ({
@@ -124,6 +153,27 @@ export default function HomePage() {
           </button>
         </div>
 
+        {/* 挑战赛激活提示 */}
+        {activeChallenge && (
+          <div className="mb-6 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-sm">
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-orange-800">挑战进行中</p>
+                <p className="text-[14px] font-black text-orange-600">{activeChallenge}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/', { state: {} })}
+              className="text-[10px] bg-white border border-orange-200 text-orange-400 px-2 py-1 rounded-md hover:bg-orange-50 transition-colors"
+            >
+              退出
+            </button>
+          </div>
+        )}
+
         {/* 食材过多提示 banner */}
         {isAbundance && (
           <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
@@ -187,7 +237,8 @@ export default function HomePage() {
 
       <div className="absolute bottom-24 left-0 right-0 px-6 flex justify-center pointer-events-none z-20">
         <button
-          onClick={() =>
+          onClick={() => {
+            if (mainIngredients.length === 0) return;
             navigate('/loading', {
               state: {
                 mainIngredients,
@@ -195,28 +246,43 @@ export default function HomePage() {
                 originalIngredients: mainIngredients,
                 preferences: { flavors: selectedFlavors, cookMethods: selectedMethods },
               },
-            })
-          }
-          className="pointer-events-auto w-full max-w-[340px] h-[72px] rounded-full bg-gradient-to-r from-[#9ED05B] via-[#A8DC64] to-[#F7DE70] shadow-[0_12px_30px_rgba(158,208,91,0.35)] flex items-center justify-between px-3 pr-6 overflow-hidden relative group transform hover:scale-[1.02] transition-transform active:scale-[0.98]"
+            });
+          }}
+          disabled={mainIngredients.length === 0}
+          className={`pointer-events-auto w-full max-w-[340px] h-[72px] rounded-full flex items-center justify-between px-3 pr-6 overflow-hidden relative group transition-all duration-300 ${
+            mainIngredients.length === 0 
+              ? 'bg-slate-200 cursor-not-allowed opacity-80' 
+              : 'bg-gradient-to-r from-[#9ED05B] via-[#A8DC64] to-[#F7DE70] shadow-[0_12px_30px_rgba(158,208,91,0.35)] hover:scale-[1.02] active:scale-[0.98]'
+          }`}
         >
-          <Sparkles size={16} className="absolute top-4 left-32 text-white/60" />
-          <Sparkles size={12} className="absolute bottom-3 right-16 text-white/60" />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+          {mainIngredients.length > 0 && (
+            <>
+              <Sparkles size={16} className="absolute top-4 left-32 text-white/60" />
+              <Sparkles size={12} className="absolute bottom-3 right-16 text-white/60" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+            </>
+          )}
 
           <div className="flex items-center gap-3 relative z-10">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-inner">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-inner transition-colors ${
+              mainIngredients.length === 0 ? 'bg-slate-300 text-slate-400 border-slate-400/30' : 'bg-white/20 backdrop-blur-md text-white border-white/30'
+            }`}>
               <span className="font-bold text-xl leading-none pt-1">AI</span>
             </div>
             <div className="text-left flex flex-col justify-center">
-              <div className="text-white font-bold text-[22px] leading-tight tracking-wide drop-shadow-sm">AI 智能搭配</div>
-              <div className="text-white/95 text-[11px] font-medium tracking-wide">
-                {totalSelected > 0
-                  ? `已选 ${totalSelected} 种食材${selectedFlavors.length > 0 || selectedMethods.length > 0 ? ' · 包含偏好' : ''}${isAbundance ? ' · 精选模式' : ''}`
-                  : '让 AI 帮你生成美味菜谱'}
+              <div className={`font-bold text-[22px] leading-tight tracking-wide drop-shadow-sm transition-colors ${
+                mainIngredients.length === 0 ? 'text-slate-400' : 'text-white'
+              }`}>AI 智能搭配</div>
+              <div className={`text-[11px] font-medium tracking-wide transition-colors ${
+                mainIngredients.length === 0 ? 'text-slate-400' : 'text-white/95'
+              }`}>
+                {mainIngredients.length > 0
+                  ? `已选 ${mainIngredients.length} 种食材${condiments.length > 0 ? ` + ${condiments.length} 种调料` : ''}`
+                  : '请选择至少一种主菜或蔬菜'}
               </div>
             </div>
           </div>
-          <ArrowRight className="text-white relative z-10" size={24} strokeWidth={2.5} />
+          <ArrowRight className={`transition-colors ${mainIngredients.length === 0 ? 'text-slate-300' : 'text-white'}`} size={24} strokeWidth={2.5} />
         </button>
       </div>
     </>
