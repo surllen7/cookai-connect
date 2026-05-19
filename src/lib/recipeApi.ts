@@ -137,7 +137,7 @@ async function callDeepSeek(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model: 'deepseek-v4-pro',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
@@ -257,3 +257,20 @@ ${recipeJson}`;
 
   return callDeepSeek(systemPrompt, question, onChunk);
 }
+
+export async function askGeneralAssistant(
+  question: string,
+  onChunk?: (delta: string) => void,
+): Promise<string> {
+  const systemPrompt = `你是一位温柔贴心的 AI 美食推荐专家与搭配助手。
+当前用户正在首页，他们不知道今天吃什么，或者想寻找一些食材搭配灵感、健康饮食建议。
+你的任务是：
+1. 亲切、热情、专业地与用户对话，提供今天吃什么的贴心推荐。可以根据用户当下的想法、口味（如清淡、香辣、减脂等）、或者甚至时令季节来推荐。
+2. 推荐 1~2 道具体、美味、适合今天吃的家常菜，并生动说明推荐理由（如：富含蛋白质、鲜美开胃、制作仅需15分钟等）。
+3. 明确列出做这些推荐菜需要采购/准备的主要食材（如：牛肉、番茄、西兰花、鸡肉等）。
+4. **非常重要**：请务必在你推荐完之后，在回答的最后另起一行，附带上你推荐的食材清单标签，格式为 \`[INGREDIENTS: 食材1, 食材2, 食材3...]\`。例如：\`[INGREDIENTS: 牛肉, 番茄, 生菜]\`。请只包含具体的食品原料名称，不要包含调料（如生抽、盐、生姜、大蒜等普通调味品），数量控制在 2-6 个。这个标签会被前端程序解析，用于在首页自动勾选对应的食材！
+5. 整体回答要保持简洁、生动，排版美观，多用 emoji 增加趣味性，每条回复字数控制在 260 字以内。`;
+
+  return callDeepSeek(systemPrompt, question, onChunk);
+}
+

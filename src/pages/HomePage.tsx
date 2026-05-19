@@ -7,6 +7,7 @@ import IOSInstallGuide from '../components/IOSInstallGuide';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { INITIAL_INGREDIENTS, FLAVOR_TAGS, COOK_METHOD_TAGS } from '../constants/mockData';
 import type { IngredientCategory, IngredientsState } from '../types';
+import HomepageAIAssistant from '../components/HomepageAIAssistant';
 
 const ABUNDANCE_THRESHOLD = 6;
 
@@ -53,6 +54,64 @@ export default function HomePage() {
         item.id === id ? { ...item, selected: !item.selected } : item
       ),
     }));
+  };
+
+  const handleApplyIngredients = (names: string[]) => {
+    setIngredients((prev) => {
+      const newState = { ...prev };
+      names.forEach((name) => {
+        // Look in meat
+        const meatIdx = newState.meat.findIndex((item) => item.name === name);
+        if (meatIdx !== -1) {
+          newState.meat = newState.meat.map((item, idx) => 
+            idx === meatIdx ? { ...item, selected: true } : item
+          );
+          return;
+        }
+
+        // Look in vegetable
+        const vegIdx = newState.vegetable.findIndex((item) => item.name === name);
+        if (vegIdx !== -1) {
+          newState.vegetable = newState.vegetable.map((item, idx) => 
+            idx === vegIdx ? { ...item, selected: true } : item
+          );
+          return;
+        }
+
+        // Look in condiment
+        const condIdx = newState.condiment.findIndex((item) => item.name === name);
+        if (condIdx !== -1) {
+          newState.condiment = newState.condiment.map((item, idx) => 
+            idx === condIdx ? { ...item, selected: true } : item
+          );
+          return;
+        }
+
+        // If not found in any predefined, add as a custom ingredient
+        let category: IngredientCategory = 'vegetable';
+        if (['鸡', '鸭', '牛', '猪', '羊', '鱼', '虾', '肉', '排骨', '蟹', '蛋', '肉', '海鲜', '贝'].some(k => name.includes(k))) {
+          category = 'meat';
+        } else if (['油', '盐', '酱', '醋', '蒜', '姜', '葱', '料酒', '辣椒', '糖', '花椒', '孜然'].some(k => name.includes(k))) {
+          category = 'condiment';
+        }
+
+        // Check if custom already exists
+        const exists = newState[category].some((item) => item.name === name);
+        if (!exists) {
+          const id = `custom_${category}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          newState[category] = [
+            ...newState[category],
+            { id, name, icon: category === 'meat' ? '🥩' : category === 'condiment' ? '🧂' : '🥬', selected: true, custom: true },
+          ];
+        } else {
+          // just set it selected
+          newState[category] = newState[category].map((item) => 
+            item.name === name ? { ...item, selected: true } : item
+          );
+        }
+      });
+      return newState;
+    });
   };
 
   const addCustomIngredient = (category: IngredientCategory, name: string) => {
@@ -285,6 +344,7 @@ export default function HomePage() {
           <ArrowRight className={`transition-colors ${mainIngredients.length === 0 ? 'text-slate-300' : 'text-white'}`} size={24} strokeWidth={2.5} />
         </button>
       </div>
+      <HomepageAIAssistant onApplyIngredients={handleApplyIngredients} />
     </>
   );
 }
